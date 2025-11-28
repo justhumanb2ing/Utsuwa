@@ -1,0 +1,9 @@
+// MCP Configuration file
+{
+  "mcpServers": {
+    // It is efficient to use supabase mcp, if u r using it currently
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=${env:SUPABASE_PROJECT_REF}"
+    }
+  }
+}
