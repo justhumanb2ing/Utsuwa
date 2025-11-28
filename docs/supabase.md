@@ -21,9 +21,8 @@ export default async function Page() {
 }
 ```
 
-## 프로필 다중 핸들 스키마/웹훅
+## 프로필 웹훅
 - 스키마/웹훅 예시: `docs/supabase-clerk-webhook.md`
-- 마이그레이션 SQL: `docs/migrations/2024-11-07-profile-handles.sql`
 
 ```ts
 // components/SomeClientComponent.tsx
