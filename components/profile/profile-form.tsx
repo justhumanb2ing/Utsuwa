@@ -1,12 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import Image from "next/image";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import {
   updateProfileAction,
   type UpdateProfileActionState,
 } from "@/app/profile/_actions";
 import { toastManager } from "@/components/ui/toast";
-import Image from "next/image";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { cn } from "@/lib/utils";
 
 type ProfileFormProps = {
   defaultUsername: string;
@@ -15,10 +18,16 @@ type ProfileFormProps = {
 
 const initialState: UpdateProfileActionState = { status: "idle" };
 
-const SubmitButton = ({ pending }: { pending: boolean }) => (
+const SubmitButton = ({
+  disabled,
+  pending,
+}: {
+  disabled: boolean;
+  pending: boolean;
+}) => (
   <button
     type="submit"
-    disabled={pending}
+    disabled={disabled || pending}
     className="inline-flex items-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
   >
     {pending ? "변경 중..." : "변경"}
@@ -29,105 +38,158 @@ export const ProfileForm = ({
   defaultUsername,
   currentAvatarUrl,
 }: ProfileFormProps) => {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
+
+  const [username, setUsername] = useState(defaultUsername);
+  const [baselineUsername, setBaselineUsername] = useState(
+    defaultUsername.trim()
+  );
+  const [avatarPreview, setAvatarPreview] = useState(currentAvatarUrl ?? "");
+  const [hasAvatarSelection, setHasAvatarSelection] = useState(false);
+
+  const normalizedUsername = useMemo(() => username.trim(), [username]);
+  const hasUsernameChanged = normalizedUsername !== baselineUsername;
+  const hasChanges = hasUsernameChanged || hasAvatarSelection;
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+      }
+    };
+  }, []);
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+
+    if (file) {
+      const nextUrl = URL.createObjectURL(file);
+      objectUrlRef.current = nextUrl;
+      setAvatarPreview(nextUrl);
+      setHasAvatarSelection(true);
+    } else {
+      setAvatarPreview(currentAvatarUrl ?? "");
+      setHasAvatarSelection(false);
+    }
+  };
+
   const actionWithToast = async (
     prevState: UpdateProfileActionState,
     formData: FormData
   ) => {
-    const result = await toastManager
-      .promise(
-        (async () => {
-          const response = await updateProfileAction(prevState, formData);
+    const loadingId = toastManager.add({
+      title: "프로필 저장 중…",
+      description: "잠시만 기다려 주세요.",
+      type: "loading",
+      timeout: 0,
+    });
 
-          if (response.status === "error") {
-            throw new Error(response.reason ?? response.message);
-          }
+    try {
+      const response = await updateProfileAction(prevState, formData);
 
-          return response;
-        })(),
-        {
-          loading: {
-            title: "프로필 저장 중…",
-            description: "잠시만 기다려 주세요.",
-          },
-          success: (response: UpdateProfileActionState) => ({
-            title: "프로필 업데이트 완료",
-            description: response.message ?? "프로필이 저장되었습니다.",
-          }),
-          error: (error: Error) => ({
-            title: "업데이트 실패",
-            description: error.message || "잠시 후 다시 시도해 주세요.",
-          }),
-        }
-      )
-      .catch((error: Error) => error);
+      if (response.status === "error") {
+        throw new Error(response.reason ?? response.message);
+      }
 
-    if (result instanceof Error) {
+      toastManager.update(loadingId, {
+        title: "프로필 업데이트 완료",
+        description: response.message ?? "프로필이 저장되었습니다.",
+        type: "success",
+      });
+
+      setBaselineUsername(normalizedUsername);
+      setHasAvatarSelection(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      return response;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "잠시 후 다시 시도해 주세요.";
+
+      toastManager.update(loadingId, {
+        title: "업데이트 실패",
+        description: message,
+        type: "error",
+      });
+
       return {
         status: "error",
         message: "프로필 업데이트에 실패했어요.",
-        reason: result.message,
-      } as UpdateProfileActionState;
+        reason: message,
+      } satisfies UpdateProfileActionState;
     }
-
-    return result as UpdateProfileActionState;
   };
 
-  const [state, formAction, isPending] = useActionState(
+  const [, formAction, isPending] = useActionState(
     actionWithToast,
     initialState
   );
 
   return (
-    <form
-      action={formAction}
-      className="space-y-5"
-      encType="multipart/form-data"
-    >
+    <form action={formAction} className="space-y-5">
       <div className="space-y-2">
-        <label htmlFor="username" className="text-sm font-medium text-zinc-900">
-          사용자명
-        </label>
-        <input
-          id="username"
-          name="username"
-          type="text"
-          defaultValue={defaultUsername}
-          placeholder="새로운 사용자명"
-          className="w-full rounded-md border border-zinc-200 px-3 py-2 text-sm text-zinc-900 shadow-sm transition focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-200"
-        />
-        <p className="text-xs text-zinc-500">최소 2자 이상 입력하세요.</p>
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="avatar" className="text-sm font-medium text-zinc-900">
-          아바타 이미지
-        </label>
         <div className="flex items-center gap-3">
           <input
             id="avatar"
             name="avatar"
             type="file"
             accept="image/*"
+            ref={fileInputRef}
+            hidden
+            onChange={handleAvatarChange}
             className="block w-full text-sm text-zinc-600 file:mr-4 file:rounded-md file:border-0 file:bg-zinc-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-zinc-900 hover:file:bg-zinc-200"
           />
-          <div className="size-20">
-            {currentAvatarUrl ? (
+          <Button
+            type="button"
+            onClick={handleAvatarClick}
+            className="size-40 p-0 aspect-square overflow-hidden rounded-full ring ring-zinc-200 transition focus:outline-none focus:ring-2 focus:ring-zinc-200"
+            aria-label="프로필 이미지 변경"
+            variant={"ghost"}
+          >
+            {avatarPreview ? (
               <Image
-                src={currentAvatarUrl}
+                src={avatarPreview}
                 alt="현재 아바타"
                 width={100}
                 height={100}
-                className="aspect-square rounded-full border border-zinc-200 object-cover"
+                className="aspect-square object-cover w-full h-full"
                 unoptimized
               />
-            ) : null}
-          </div>
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-zinc-50 text-xs text-zinc-500">
+                이미지 선택
+              </div>
+            )}
+          </Button>
         </div>
-        <p className="text-xs text-zinc-500">
-          업로드 시 Clerk 프로필 이미지가 교체됩니다.
-        </p>
       </div>
-      <SubmitButton pending={isPending} />
+      <div className="space-y-2">
+        <Input
+          id="username"
+          name="username"
+          type="text"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          placeholder="새로운 사용자명"
+          className={cn(
+            "w-full rounded-md border-0 shadow-none px-3 py-2 !text-5xl !font-bold text-zinc-900 h-20 p-0",
+            "focus:outline-none focus:ring-0 focus-visible:ring-0"
+          )}
+        />
+      </div>
+      <SubmitButton pending={isPending} disabled={!hasChanges} />
     </form>
   );
 };
