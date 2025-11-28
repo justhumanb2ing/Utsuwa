@@ -5,8 +5,8 @@
   - `createSupabaseServerClient()`: 서버 컴포넌트/Route Handler/서버 액션 전용. `SUPABASE_SERVICE_ROLE_KEY`가 있으면 우선 사용(민감하므로 클라이언트 번들에 포함 금지).
 - 환경변수
   - `NEXT_PUBLIC_SUPABASE_URL`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  - `SUPABASE_SERVICE_ROLE_KEY` (선택, 서버 전용)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` (선택, 서버 전용)
 - 사용 예시
 
 ```ts
@@ -20,6 +20,10 @@ export default async function Page() {
   return <pre>{JSON.stringify(data, null, 2)}</pre>;
 }
 ```
+
+## 프로필 다중 핸들 스키마/웹훅
+- 스키마/웹훅 예시: `docs/supabase-clerk-webhook.md`
+- 마이그레이션 SQL: `docs/migrations/2024-11-07-profile-handles.sql`
 
 ```ts
 // components/SomeClientComponent.tsx
