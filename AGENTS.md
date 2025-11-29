@@ -9,6 +9,12 @@
 이 프로젝트는 모듈화된 구조, 테스트 주도 방식, 유지보수 용이성을 핵심 가치로 두고 설계해야 합니다.
 궁극적 목표는 명확성(Clarity), 확장성(Scalability), 신뢰성(Reliability)입니다.
 
+## TL;DR (필수)
+- JS/TS 변경 후 `bun test` 등 해당 테스트를 반드시 실행하고, 네트워크 호출은 mock으로 대체한다.
+- 패키지 관리는 bun 우선, .env.example ⇄ .env.local 을 항상 동기화한다.
+- 파괴적 명령 금지, 저장소 루트 밖 쓰기 금지.
+- Sentry DSN은 환경 변수(`SENTRY_DSN`)로 주입하고 예제 값은 복붙하지 않는다.
+
 ## 핵심 원칙
 - 낮은 결합도·높은 응집도.
 - 데이터 로직과 UI 표현 분리.
@@ -36,7 +42,7 @@
 - 저장소 루트 밖 쓰기 금지.
 - 파괴적 명령은 명시적으로 요청된 경우에만.
 
-These examples should be used as guidance when configuring Sentry functionality within a project.
+These examples should be used as guidance when configuring Sentry functionality within a project. Sentry DSN은 예시이며, 실제 값은 반드시 환경 변수로 주입하세요.
 
 
 # Frontend Design Guideline
@@ -813,8 +819,8 @@ Initialization does not need to be repeated in other files, it only needs to hap
 import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
-  dsn: "https://386be2d8c359f220b7ed96fdc30bd840@o4510413309935616.ingest.us.sentry.io/4510413310853120",
-
+  // Example only — set the real DSN via environment variable
+  dsn: process.env.SENTRY_DSN ?? "<example-dsn>",
   enableLogs: true,
 });
 ```
@@ -823,7 +829,8 @@ Sentry.init({
 
 ```javascript
 Sentry.init({
-  dsn: "https://386be2d8c359f220b7ed96fdc30bd840@o4510413309935616.ingest.us.sentry.io/4510413310853120",
+  // Example only — set the real DSN via environment variable
+  dsn: process.env.SENTRY_DSN ?? "<example-dsn>",
   integrations: [
     // send console.log, console.warn, and console.error calls as logs to Sentry
     Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),

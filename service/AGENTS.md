@@ -1,4 +1,4 @@
-# services/AGENTS.md
+# service/AGENTS.md
 
 ## 구조
 - 기능 단위로 조직화하고 UI에서 데이터 로직을 분리한다.

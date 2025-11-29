@@ -1,4 +1,4 @@
-# config/supabase/AGENTS.override.md
+# config/AGENTS.md
 
 ## 목표
 Supabase 데이터베이스 스키마 변경(컬럼/타입/구조)이 API 응답 및 프론트엔드 타입 정의에 자동으로 반영될 수 있도록, 데이터 일관성과 타입 안정성을 유지한다.

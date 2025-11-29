@@ -1,4 +1,4 @@
-# tests/AGENTS.override.md
+# test/AGENTS.md
 
 ## 범위
 - 단위 테스트·통합 테스트만 수행하고 핵심적으로 필요하다고 판단되는 부분만 작성한다.
