@@ -20,21 +20,21 @@ export type Database = {
           id: string
           ordering: number | null
           page_id: string
-          type: string
+          type: Database["public"]["Enums"]["block_type"]
         }
         Insert: {
           created_at?: string | null
           id?: string
           ordering?: number | null
           page_id: string
-          type: string
+          type: Database["public"]["Enums"]["block_type"]
         }
         Update: {
           created_at?: string | null
           id?: string
           ordering?: number | null
           page_id?: string
-          type?: string
+          type?: Database["public"]["Enums"]["block_type"]
         }
         Relationships: [
           {
@@ -90,6 +90,7 @@ export type Database = {
       profile: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
           display_name: string
           updated_at: string
@@ -97,6 +98,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           display_name: string
           updated_at?: string
@@ -104,6 +106,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           display_name?: string
           updated_at?: string
@@ -116,10 +119,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_block_types: { Args: never; Returns: string[] }
     }
     Enums: {
-      [_ in never]: never
+      block_type:
+        | "link"
+        | "text"
+        | "section"
+        | "image"
+        | "video"
+        | "map"
+        | "divider"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -246,6 +256,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      block_type: [
+        "link",
+        "text",
+        "section",
+        "image",
+        "video",
+        "map",
+        "divider",
+      ],
+    },
   },
 } as const

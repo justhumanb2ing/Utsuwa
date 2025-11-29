@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
 
 type ProfileFormProps = {
-  handle: string;
   isOwner: boolean;
   pageTitle?: string;
   pageDescription?: string;
@@ -39,7 +38,6 @@ const SubmitButton = ({
 );
 
 export const ProfileForm = ({
-  handle,
   isOwner,
   pageTitle,
   pageDescription,
@@ -162,7 +160,6 @@ export const ProfileForm = ({
 
   return (
     <form action={isOwner ? formAction : undefined} className="space-y-5">
-      <input type="hidden" name="handle" value={handle} />
       <div className="space-y-2">
         <div className="flex items-center gap-3">
           <input
