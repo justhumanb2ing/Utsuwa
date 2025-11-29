@@ -14,14 +14,18 @@ type HeaderClientProps = {
   pageLinks: Array<{ id: string; href: string; label: string }>;
 };
 
-const PageLinks = ({ pageLinks }: { pageLinks: HeaderClientProps["pageLinks"] }) =>
+const PageLinks = ({
+  pageLinks,
+}: {
+  pageLinks: HeaderClientProps["pageLinks"];
+}) =>
   pageLinks.length > 0 ? (
     <nav className="flex flex-wrap items-center gap-2">
       {pageLinks.map((page) => (
         <Link
           key={page.id}
           href={page.href}
-          className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium text-zinc-900 transition hover:bg-zinc-200"
+          className="px-3 py-1 text-sm text-zinc-900 transition hover:bg-zinc-100"
         >
           {page.label}
         </Link>
@@ -29,7 +33,10 @@ const PageLinks = ({ pageLinks }: { pageLinks: HeaderClientProps["pageLinks"] })
     </nav>
   ) : null;
 
-export default function HeaderClient({ profileHref, pageLinks }: HeaderClientProps) {
+export default function HeaderClient({
+  profileHref,
+  pageLinks,
+}: HeaderClientProps) {
   return (
     <header className="flex justify-end items-center p-4 gap-4 h-16">
       <SignedOut>
