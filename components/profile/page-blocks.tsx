@@ -18,6 +18,7 @@ export const PageBlocks = ({ blocks }: PageBlocksProps) => {
             width={200}
             height={200}
             className="object-cover w-full h-full"
+            unoptimized
           />
         </div>
         <p className="">이곳은 여전히 고요합니다.</p>
