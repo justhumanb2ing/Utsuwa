@@ -1,33 +1,52 @@
-"use client";
+import { currentUser } from "@clerk/nextjs/server";
+import * as Sentry from "@sentry/nextjs";
+import type { OwnerPages } from "@/service/pages/fetch-pages-by-owner";
+import { fetchPagesByOwnerId } from "@/service/pages/fetch-pages-by-owner";
+import HeaderClient from "./header-client";
 
-import React from "react";
-import Link from "next/link";
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
+type PageLink = {
+  id: string;
+  href: string;
+  label: string;
+};
 
-export default function Header() {
-  const { user } = useUser();
-  const handle = typeof user?.publicMetadata?.handle === "string" ? user.publicMetadata.handle : null;
-  const profileHref = handle ? `/profile/${handle}` : "/profile";
+const normalizeHandle = (rawHandle: string): string =>
+  rawHandle.trim().replace(/^@+/, "");
+
+const buildProfilePath = (handle: string): string => {
+  const normalized = normalizeHandle(handle);
+  return normalized ? `/profile/@${normalized}` : "/profile";
+};
+
+const toPageLinks = (pages: OwnerPages): PageLink[] =>
+  pages.map((page) => {
+    const href = buildProfilePath(page.handle);
+    const label = page.title?.trim() || page.handle;
+
+    return { id: page.id, href, label };
+  });
+
+export default async function Header() {
+  const user = await currentUser();
+
+  const profileHref = buildProfilePath(
+    typeof user?.publicMetadata?.handle === "string"
+      ? user.publicMetadata.handle
+      : ""
+  );
+
+  let pageLinks: PageLink[] = [];
+
+  if (user?.id) {
+    try {
+      const pages = await fetchPagesByOwnerId(user.id);
+      pageLinks = toPageLinks(pages);
+    } catch (error) {
+      Sentry.captureException(error);
+    }
+  }
 
   return (
-    <header className="flex justify-end items-center p-4 gap-4 h-16">
-      <SignedOut>
-        <SignInButton />
-        <SignUpButton>
-          <button className="bg-[#6c47ff] text-white rounded-full font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 cursor-pointer">
-            Sign Up
-          </button>
-        </SignUpButton>
-      </SignedOut>
-      <SignedIn>
-        <Link
-          href={profileHref}
-          className="rounded-full bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 transition hover:bg-zinc-200"
-        >
-          내 프로필
-        </Link>
-        <UserButton />
-      </SignedIn>
-    </header>
+    <HeaderClient profileHref={profileHref} pageLinks={pageLinks} />
   );
 }

@@ -10,11 +10,13 @@ import { toastManager } from "@/components/ui/toast";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
+import { Textarea } from "../ui/textarea";
 
 type ProfileFormProps = {
   handle: string;
   isOwner: boolean;
-  profileDisplayName?: string;
+  pageTitle?: string;
+  pageDescription?: string;
   profileAvatarUrl?: string;
 };
 
@@ -39,24 +41,34 @@ const SubmitButton = ({
 export const ProfileForm = ({
   handle,
   isOwner,
-  profileDisplayName,
+  pageTitle,
+  pageDescription,
   profileAvatarUrl,
 }: ProfileFormProps) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
 
-  const initialUsername = profileDisplayName ?? "";
+  const initialTitle = pageTitle ?? "";
+  const initialDescription = pageDescription ?? "";
 
-  const [username, setUsername] = useState(initialUsername);
-  const [baselineUsername, setBaselineUsername] = useState(
-    initialUsername.trim()
+  const [title, setTitle] = useState(initialTitle);
+  const [description, setDescription] = useState(initialDescription);
+  const [baselineTitle, setBaselineTitle] = useState(initialTitle.trim());
+  const [baselineDescription, setBaselineDescription] = useState(
+    initialDescription.trim()
   );
   const [avatarPreview, setAvatarPreview] = useState(profileAvatarUrl ?? "");
   const [hasAvatarSelection, setHasAvatarSelection] = useState(false);
 
-  const normalizedUsername = useMemo(() => username.trim(), [username]);
-  const hasUsernameChanged = normalizedUsername !== baselineUsername;
-  const hasChanges = hasUsernameChanged || hasAvatarSelection;
+  const normalizedTitle = useMemo(() => title.trim(), [title]);
+  const normalizedDescription = useMemo(
+    () => description.trim(),
+    [description]
+  );
+  const hasTitleChanged = normalizedTitle !== baselineTitle;
+  const hasDescriptionChanged = normalizedDescription !== baselineDescription;
+  const hasChanges =
+    hasTitleChanged || hasDescriptionChanged || hasAvatarSelection;
 
   useEffect(() => {
     return () => {
@@ -117,7 +129,8 @@ export const ProfileForm = ({
         type: "success",
       });
 
-      setBaselineUsername(normalizedUsername);
+      setBaselineTitle(normalizedTitle);
+      setBaselineDescription(normalizedDescription);
       setHasAvatarSelection(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -188,16 +201,30 @@ export const ProfileForm = ({
       </div>
       <div className="space-y-2">
         <Input
-          id="username"
-          name="username"
+          id="title"
+          name="title"
           type="text"
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
           readOnly={!isOwner}
-          placeholder="새로운 사용자명"
+          placeholder="페이지 제목"
           className={cn(
             "w-full rounded-md border-0 shadow-none px-3 py-2 !text-5xl !font-bold text-zinc-900 h-20 p-0",
             "focus:outline-none focus:ring-0 focus-visible:ring-0"
+          )}
+        />
+      </div>
+      <div className="space-y-2">
+        <Textarea
+          id="description"
+          name="description"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          readOnly={!isOwner}
+          placeholder="페이지 설명을 입력하세요"
+          className={cn(
+            "w-full border-none rounded-none shadow-none text-zinc-900 min-h-[80px] p-0 !text-lg resize-none",
+            "focus-visible:outline-none focus-visible:ring-0"
           )}
         />
       </div>

@@ -14,12 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocks: {
+        Row: {
+          created_at: string | null
+          id: string
+          ordering: number | null
+          page_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ordering?: number | null
+          page_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ordering?: number | null
+          page_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocks_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pages: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          handle: string
+          id: string
+          is_public: boolean | null
+          ordering: number | null
+          owner_id: string
+          title: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          handle: string
+          id?: string
+          is_public?: boolean | null
+          ordering?: number | null
+          owner_id: string
+          title?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          handle?: string
+          id?: string
+          is_public?: boolean | null
+          ordering?: number | null
+          owner_id?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pages_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       profile: {
         Row: {
           avatar_url: string | null
           created_at: string
           display_name: string
-          handle: string
           updated_at: string
           user_id: string
         }
@@ -27,7 +99,6 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name: string
-          handle: string
           updated_at?: string
           user_id: string
         }
@@ -35,7 +106,6 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name?: string
-          handle?: string
           updated_at?: string
           user_id?: string
         }
