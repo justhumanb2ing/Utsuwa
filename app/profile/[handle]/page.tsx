@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ProfileForm } from "@/components/profile/profile-form";
 import type { Tables } from "@/types/database.types";
 import { BlockRegistryPanel } from "@/components/layout/block-registry";
+import { PageBlocks } from "@/components/profile/page-blocks";
 
 type ProfilePageProps = {
   params: Promise<{ handle: string }>;
@@ -13,9 +14,15 @@ type PagePayload = Pick<
   "id" | "handle" | "title" | "description" | "image_url" | "owner_id"
 >;
 
+type BlockPayload = Pick<
+  Tables<"blocks">,
+  "id" | "type" | "ordering" | "created_at"
+>;
+
 type BffResponse = {
   page: PagePayload;
   isOwner: boolean;
+  blocks: BlockPayload[];
 };
 
 const buildApiUrl = async (handle: string): Promise<string> => {
@@ -56,8 +63,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   if (!result) {
     notFound();
   }
-  console.log(result)
-  const { page, isOwner } = result;
+
+  const { page, isOwner, blocks } = result;
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 p-6">
@@ -72,6 +79,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         />
       </section>
       {isOwner ? <BlockRegistryPanel /> : null}
+      <PageBlocks blocks={blocks} />
     </div>
   );
 }

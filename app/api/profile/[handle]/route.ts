@@ -10,9 +10,15 @@ type PagePayload = Pick<
   "id" | "handle" | "title" | "description" | "image_url" | "owner_id"
 >;
 
+type BlocksPayload = Pick<
+  Tables<"blocks">,
+  "id" | "type" | "ordering" | "created_at"
+>;
+
 type BffPayload = {
   page: PagePayload;
   isOwner: boolean;
+  blocks: BlocksPayload[];
 };
 
 const normalizeHandle = (rawHandle: string): string =>
@@ -31,7 +37,7 @@ const buildHandleCandidates = (rawHandle: string): string[] => {
 const fetchPageAndProfile = async (
   supabase: SupabaseClient,
   handleCandidates: string[]
-): Promise<{ page: PagePayload } | null> => {
+): Promise<{ page: PagePayload; blocks: BlocksPayload[] } | null> => {
   const { data: page, error: pageError } = await supabase
     .from("pages")
     .select("id, handle, title, description, image_url, owner_id")
@@ -43,7 +49,16 @@ const fetchPageAndProfile = async (
   if (pageError) throw pageError;
   if (!page) return null;
 
-  return { page };
+  const { data: blocks, error: blocksError } = await supabase
+    .from("blocks")
+    .select("id, type, ordering, created_at")
+    .eq("page_id", page.id)
+    .order("ordering", { ascending: true, nullsFirst: true })
+    .order("created_at", { ascending: true });
+
+  if (blocksError) throw blocksError;
+
+  return { page, blocks: blocks ?? [] };
 };
 
 export async function GET(
@@ -66,9 +81,12 @@ export async function GET(
 
     const isOwner = Boolean(userId && userId === result.page.owner_id);
 
-    return NextResponse.json({ ...result, isOwner } satisfies BffPayload, {
-      status: 200,
-    });
+    return NextResponse.json(
+      { ...result, isOwner } satisfies BffPayload,
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
     Sentry.captureException(error);
     return NextResponse.json(
