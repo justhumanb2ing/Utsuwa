@@ -15,52 +15,11 @@ type ProfilePayload = Pick<
   "user_id" | "display_name" | "avatar_url"
 >;
 
-type BlockTypePayload = {
-  id?: string;
-  name?: string | null;
-  description?: string | null;
-  icon: string;
-  is_available: boolean;
-};
-
 type BffPayload = {
   page: PagePayload;
   profile: ProfilePayload;
-  blockTypes?: BlockTypePayload[] | null;
   isOwner: boolean;
 };
-
-type RawBlockType = {
-  id?: unknown;
-  name?: unknown;
-  description?: unknown;
-  icon?: unknown;
-  is_available?: unknown;
-};
-
-const iconByKey: Record<string, string> = {
-  link: "Link",
-  text: "Type",
-  section: "LayoutPanelTop",
-  image: "Image",
-  video: "Video",
-  map: "MapPinned",
-  divider: "SeparatorHorizontal",
-};
-
-const formatFromStringList = (items: string[]): BlockTypePayload[] =>
-  items.map((key) => {
-    const normalizedKey = key.trim().toLowerCase();
-    const icon = iconByKey[normalizedKey] ?? "Square";
-
-    return {
-      id: undefined,
-      name: key,
-      description: null,
-      icon,
-      is_available: true,
-    };
-  });
 
 const normalizeHandle = (rawHandle: string): string =>
   rawHandle.trim().replace(/^@+/, "");
@@ -102,33 +61,6 @@ const fetchPageAndProfile = async (
   return { page, profile };
 };
 
-const formatBlockTypes = (raw: unknown): BlockTypePayload[] => {
-  if (Array.isArray(raw) && raw.every((item) => typeof item === "string")) {
-    return formatFromStringList(raw as string[]);
-  }
-
-  if (!Array.isArray(raw)) return [];
-
-  return raw
-    .map((item) => {
-      if (!item || typeof item !== "object") return null;
-      const typed = item as RawBlockType;
-
-      return {
-        id: typeof typed.id === "string" ? typed.id : undefined,
-        name: typeof typed.name === "string" ? typed.name : null,
-        description:
-          typeof typed.description === "string" ? typed.description : null,
-        icon:
-          typeof typed.icon === "string" && typed.icon.trim()
-            ? typed.icon
-            : "Square",
-        is_available: Boolean(typed.is_available),
-      } satisfies BlockTypePayload;
-    })
-    .filter(Boolean) as BlockTypePayload[];
-};
-
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ handle: string }> }
@@ -148,25 +80,17 @@ export async function GET(
     }
 
     const isOwner = Boolean(userId && userId === result.page.owner_id);
-    let blockTypes: BlockTypePayload[] | undefined;
-
-    if (isOwner) {
-      const { data, error } = await supabase.rpc("get_block_types");
-      if (error) {
-        Sentry.captureException(error);
-      } else {
-        console.log(data);
-        blockTypes = formatBlockTypes(data);
-      }
-    }
 
     return NextResponse.json(
-      { ...result, blockTypes, isOwner } satisfies BffPayload,
+      { ...result, isOwner } satisfies BffPayload,
       { status: 200 }
     );
   } catch (error) {
     Sentry.captureException(error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
 
