@@ -1,13 +1,18 @@
 import Image from "next/image";
 import type { Tables } from "@/types/database.types";
 
+import { Item } from "@/components/ui/item";
+
 import {
-  Item,
-  ItemContent,
-  ItemDescription,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Button } from "../ui/button";
+import Link from "next/link";
 
 type Block = Pick<Tables<"blocks">, "id" | "type" | "ordering" | "created_at">;
 
@@ -22,9 +27,9 @@ export const PageBlocks = ({ blocks }: PageBlocksProps) => {
         asChild
         className="flex flex-col items-center space-y-3 max-w-sm text-center font-medium p-0 border-none bg-transparent shadow-none"
       >
-        <section>
-          <Item className="flex flex-col justify-center items-center text-center">
-            <ItemMedia className="flex justify-center w-full">
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia>
               <div className="size-32 rounded-full overflow-hidden">
                 <Image
                   src={"/sprite-animation.gif"}
@@ -35,16 +40,19 @@ export const PageBlocks = ({ blocks }: PageBlocksProps) => {
                   unoptimized
                 />
               </div>
-            </ItemMedia>
-            <ItemContent className="items-center">
-              <ItemTitle className="text-base">이곳은 여전히 고요합니다.</ItemTitle>
-              <ItemDescription>
-                비어 있음은 결핍이 아니라, 당신이 채울 가능성들이 아직 이름을
-                얻지 않았다는 신호일지 모릅니다.
-              </ItemDescription>
-            </ItemContent>
-          </Item>
-        </section>
+            </EmptyMedia>
+            <EmptyTitle>이곳은 여전히 고요합니다.</EmptyTitle>
+            <EmptyDescription>
+              비어 있음은 결핍이 아니라, 당신이 채울 가능성들이 아직 이름을 얻지
+              않았다는 신호일지 모릅니다.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button asChild size={"sm"}>
+              <Link href={"/"}>돌아가기</Link>
+            </Button>
+          </EmptyContent>
+        </Empty>
       </Item>
     );
   }
