@@ -1,14 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { BlockWithDetails } from "@/types/block";
 import type { BlockType } from "@/config/block-registry";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Empty,
   EmptyContent,
@@ -18,7 +16,10 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Item } from "@/components/ui/item";
-import { toastManager } from "@/components/ui/toast";
+import {
+  LinkBlockEditor,
+  TextBlockEditor,
+} from "@/components/profile/block-editors";
 
 type PlaceholderBlock = { kind: "placeholder"; id: string; type: BlockType };
 type PersistedBlock = { kind: "persisted"; block: BlockWithDetails };
@@ -37,303 +38,33 @@ type PageBlocksProps = {
   onCancelPlaceholder: (placeholderId: string) => void;
 };
 
-type SaveResponse =
-  | { status: "success"; blockId: string }
-  | { status: "error"; reason?: string; message: string };
+const extractLinkData = (
+  block?: BlockWithDetails
+): { url?: string | null; title?: string | null } => {
+  if (!block) return {};
+  const rawData =
+    typeof block === "object" && "data" in block && block.data && typeof block.data === "object"
+      ? (block.data as Record<string, unknown>)
+      : undefined;
 
-const saveLinkBlock = async (params: {
-  blockId: string;
-  handle: string;
-  url: string;
-  title: string;
-}): Promise<SaveResponse> => {
-  const response = await fetch("/api/profile/block/link", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
-  });
-
-  const data = (await response.json().catch(() => ({}))) as SaveResponse;
-
-  if (!response.ok || data.status === "error") {
-    return {
-      status: "error",
-      reason: data.status === "error" ? data.reason : "REQUEST_FAILED",
-      message:
-        data.status === "error" ? data.message : "링크를 저장하지 못했습니다.",
-    };
-  }
-
-  return data;
-};
-
-const saveTextBlock = async (params: {
-  blockId: string;
-  handle: string;
-  content: string;
-}): Promise<SaveResponse> => {
-  const response = await fetch("/api/profile/block/text", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
-  });
-
-  const data = (await response.json().catch(() => ({}))) as SaveResponse;
-
-  if (!response.ok || data.status === "error") {
-    return {
-      status: "error",
-      reason: data.status === "error" ? data.reason : "REQUEST_FAILED",
-      message:
-        data.status === "error"
-          ? data.message
-          : "텍스트를 저장하지 못했습니다.",
-    };
-  }
-
-  return data;
-};
-
-type LinkBlockEditorProps = {
-  mode: "placeholder" | "persisted";
-  blockId?: string;
-  placeholderId?: string;
-  handle: string;
-  isOwner: boolean;
-  data: { url?: string | null; title?: string | null };
-  onSavePlaceholder?: (data: { url: string; title: string }) => void;
-  onCancelPlaceholder?: () => void;
-};
-
-const LinkBlockEditor = ({
-  mode,
-  blockId,
-  handle,
-  isOwner,
-  data,
-  onSavePlaceholder,
-  onCancelPlaceholder,
-}: LinkBlockEditorProps) => {
-  const [url, setUrl] = useState(data.url ?? "");
-  const [title, setTitle] = useState(data.title ?? "");
-  const [isSaving, setIsSaving] = useState(false);
-  const isPristine =
-    url.trim() === (data.url?.trim() ?? "") &&
-    (title?.trim() ?? "") === (data.title?.trim() ?? "");
-
-  const handleSave = async () => {
-    if (!isOwner) return;
-    const trimmedUrl = url.trim();
-    const trimmedTitle = title.trim();
-
-    if (!trimmedUrl || !trimmedTitle) {
-      toastManager.add({
-        title: "입력을 확인하세요",
-        description: "URL과 제목을 모두 입력해야 합니다.",
-        type: "warning",
-      });
-      return;
-    }
-
-    if (mode === "placeholder" && onSavePlaceholder) {
-      setIsSaving(true);
-      try {
-        onSavePlaceholder({ url: trimmedUrl, title: trimmedTitle });
-      } finally {
-        setIsSaving(false);
-      }
-      return;
-    }
-
-    if (!blockId) return;
-
-    const toastId = toastManager.add({
-      title: "링크 저장 중…",
-      type: "loading",
-      timeout: 0,
-    });
-
-    setIsSaving(true);
-    try {
-      const result = await saveLinkBlock({
-        blockId,
-        handle,
-        url: trimmedUrl,
-        title: trimmedTitle,
-      });
-
-      if (result.status === "error") {
-        throw new Error(result.message);
-      }
-
-      toastManager.update(toastId, {
-        title: "링크가 저장되었습니다.",
-        type: "success",
-      });
-    } catch (error) {
-      const description =
-        error instanceof Error ? error.message : "잠시 후 다시 시도해 주세요.";
-      toastManager.update(toastId, {
-        title: "저장 실패",
-        description,
-        type: "error",
-      });
-    } finally {
-      setIsSaving(false);
-    }
+  return {
+    url: block.link_url ?? (rawData?.url as string | undefined) ?? null,
+    title: block.title ?? (rawData?.title as string | undefined) ?? null,
   };
-
-  return (
-    <div className="space-y-2">
-      <Input
-        placeholder="https://example.com"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        disabled={!isOwner}
-      />
-      <Input
-        placeholder="링크 제목"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        disabled={!isOwner}
-      />
-      <div className="flex justify-end gap-2">
-        {mode === "placeholder" ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onCancelPlaceholder}
-            disabled={isSaving}
-          >
-            취소
-          </Button>
-        ) : null}
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={!isOwner || isSaving || isPristine}
-          aria-busy={isSaving}
-        >
-          {isSaving ? "저장 중…" : "저장"}
-        </Button>
-      </div>
-    </div>
-  );
 };
 
-type TextBlockEditorProps = {
-  mode: "placeholder" | "persisted";
-  blockId?: string;
-  handle: string;
-  isOwner: boolean;
-  data: { content?: string | null };
-  onSavePlaceholder?: (data: { content: string }) => void;
-  onCancelPlaceholder?: () => void;
-};
+const extractTextData = (
+  block?: BlockWithDetails
+): { content?: string | null } => {
+  if (!block) return {};
+  const rawData =
+    typeof block === "object" && "data" in block && block.data && typeof block.data === "object"
+      ? (block.data as Record<string, unknown>)
+      : undefined;
 
-const TextBlockEditor = ({
-  mode,
-  blockId,
-  handle,
-  isOwner,
-  data,
-  onSavePlaceholder,
-  onCancelPlaceholder,
-}: TextBlockEditorProps) => {
-  const [content, setContent] = useState(data.content ?? "");
-  const [isSaving, setIsSaving] = useState(false);
-  const isPristine = (content?.trim() ?? "") === (data.content?.trim() ?? "");
-
-  const handleSave = async () => {
-    if (!isOwner) return;
-    const trimmed = content.trim();
-
-    if (!trimmed) {
-      toastManager.add({
-        title: "입력을 확인하세요",
-        description: "내용을 입력해주세요.",
-        type: "warning",
-      });
-      return;
-    }
-
-    if (mode === "placeholder" && onSavePlaceholder) {
-      setIsSaving(true);
-      try {
-        onSavePlaceholder({ content: trimmed });
-      } finally {
-        setIsSaving(false);
-      }
-      return;
-    }
-
-    if (!blockId) return;
-
-    const toastId = toastManager.add({
-      title: "텍스트 저장 중…",
-      type: "loading",
-      timeout: 0,
-    });
-
-    setIsSaving(true);
-    try {
-      const result = await saveTextBlock({
-        blockId,
-        handle,
-        content: trimmed,
-      });
-
-      if (result.status === "error") {
-        throw new Error(result.message);
-      }
-
-      toastManager.update(toastId, {
-        title: "텍스트가 저장되었습니다.",
-        type: "success",
-      });
-    } catch (error) {
-      const description =
-        error instanceof Error ? error.message : "잠시 후 다시 시도해 주세요.";
-      toastManager.update(toastId, {
-        title: "저장 실패",
-        description,
-        type: "error",
-      });
-    } finally {
-      setIsSaving(false);
-    }
+  return {
+    content: block.content ?? (rawData?.content as string | undefined) ?? null,
   };
-
-  return (
-    <div className="space-y-2">
-      <Textarea
-        placeholder="내용을 입력하세요"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        disabled={!isOwner}
-      />
-      <div className="flex justify-end gap-2">
-        {mode === "placeholder" ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={onCancelPlaceholder}
-            disabled={isSaving}
-          >
-            취소
-          </Button>
-        ) : null}
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={!isOwner || isSaving || isPristine}
-          aria-busy={isSaving}
-        >
-          {isSaving ? "저장 중…" : "저장"}
-        </Button>
-      </div>
-    </div>
-  );
 };
 
 export const PageBlocks = ({
@@ -425,12 +156,14 @@ export const PageBlocks = ({
                 </span>
                 {block?.ordering !== null && block?.ordering !== undefined ? (
                   <span className="text-xs text-zinc-500">
-                    #{block?.ordering}
+                    #{block.ordering}
                   </span>
                 ) : null}
               </div>
               <p className="mt-2 text-xs text-zinc-500">
-                {createdAt ? new Date(createdAt).toLocaleString() : "임시 블록"}
+                {createdAt
+                  ? new Date(createdAt).toLocaleString()
+                  : "임시 블록"}
               </p>
 
               <div className="mt-3 space-y-3">
@@ -443,14 +176,15 @@ export const PageBlocks = ({
                           blockId={blockId}
                           handle={handle}
                           isOwner={isOwner}
-                          data={{
-                            url: block?.url,
-                            title: block?.title,
-                          }}
+                          data={extractLinkData(block)}
                           onSavePlaceholder={
                             isPlaceholder
                               ? (data) =>
-                                  onSavePlaceholder(item.id, "link", data)
+                                  onSavePlaceholder(
+                                    item.id,
+                                    "link",
+                                    data
+                                  )
                               : undefined
                           }
                           onCancelPlaceholder={
@@ -467,11 +201,15 @@ export const PageBlocks = ({
                           blockId={blockId}
                           handle={handle}
                           isOwner={isOwner}
-                          data={{ content: block?.content }}
+                          data={extractTextData(block)}
                           onSavePlaceholder={
                             isPlaceholder
                               ? (data) =>
-                                  onSavePlaceholder(item.id, "text", data)
+                                  onSavePlaceholder(
+                                    item.id,
+                                    "text",
+                                    data
+                                  )
                               : undefined
                           }
                           onCancelPlaceholder={
