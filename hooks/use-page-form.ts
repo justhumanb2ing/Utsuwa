@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { updatePageAction } from "@/app/profile/_actions";
 import { toastManager } from "@/components/ui/toast";
 
 const PageSchema = z.object({
@@ -47,6 +46,35 @@ const uploadImage = async (file: File, handle: string): Promise<string> => {
     throw new Error("업로드 URL이 비어 있습니다.");
   }
   return data.url;
+};
+
+type UpdatePageResponse =
+  | { status: "success"; message: string }
+  | { status: "error"; message: string; reason?: string };
+
+const requestUpdatePage = async (
+  payload: PageSchemaType
+): Promise<UpdatePageResponse> => {
+  const res = await fetch("/api/profile/update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = (await res.json().catch(() => ({}))) as UpdatePageResponse;
+
+  if (!res.ok || data.status === "error") {
+    return {
+      status: "error",
+      reason: data.status === "error" ? data.reason : "REQUEST_FAILED",
+      message:
+        data.status === "error"
+          ? data.message
+          : "페이지 업데이트 요청이 실패했습니다.",
+    };
+  }
+
+  return data;
 };
 
 export const usePageForm = ({
@@ -101,12 +129,13 @@ export const usePageForm = ({
           resolvedImageUrl = await uploadImage(data.image, data.handle);
         }
 
-        const result = await updatePageAction({
+        const result = await requestUpdatePage({
           pageId: data.pageId,
           handle: data.handle,
           title: data.title,
           description: data.description ?? "",
           imageUrl: resolvedImageUrl,
+          image: undefined,
         });
 
         if (result.status === "error") {
@@ -114,7 +143,7 @@ export const usePageForm = ({
         }
 
         toastManager.update(loadingId, {
-          title: "저장 완료",
+          title: result.message ?? "저장 완료",
           type: "success",
         });
 

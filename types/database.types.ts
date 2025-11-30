@@ -287,7 +287,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_block: {
+        Args: {
+          p_data: Json
+          p_page_id: string
+          p_type: Database["public"]["Enums"]["block_type"]
+        }
+        Returns: Json
+      }
       get_block_types: { Args: never; Returns: string[] }
+      get_blocks_with_details: { Args: { p_page_id: string }; Returns: Json }
     }
     Enums: {
       block_type:

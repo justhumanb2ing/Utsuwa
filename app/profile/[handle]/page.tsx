@@ -1,29 +1,14 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { ProfileForm } from "@/components/profile/profile-form";
-import type { Tables } from "@/types/database.types";
-import { BlockRegistryPanel } from "@/components/layout/block-registry";
-import { PageBlocks } from "@/components/profile/page-blocks";
+import type { ProfileBffPayload } from "@/types/profile";
+import { ProfileBlocksClient } from "@/components/profile/profile-blocks-client";
 
 type ProfilePageProps = {
   params: Promise<{ handle: string }>;
 };
 
-type PagePayload = Pick<
-  Tables<"pages">,
-  "id" | "handle" | "title" | "description" | "image_url" | "owner_id"
->;
-
-type BlockPayload = Pick<
-  Tables<"blocks">,
-  "id" | "type" | "ordering" | "created_at"
->;
-
-type BffResponse = {
-  page: PagePayload;
-  isOwner: boolean;
-  blocks: BlockPayload[];
-};
+type BffResponse = ProfileBffPayload;
 
 const buildApiUrl = async (handle: string): Promise<string> => {
   const headerStore = await headers();
@@ -59,7 +44,6 @@ const fetchProfileFromBff = async (
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { handle } = await params;
   const result = await fetchProfileFromBff(decodeURIComponent(handle));
-
   if (!result) {
     notFound();
   }
@@ -78,8 +62,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           pageImageUrl={page.image_url ?? undefined}
         />
       </section>
-      {isOwner ? <BlockRegistryPanel /> : null}
-      <PageBlocks blocks={blocks} />
+      <ProfileBlocksClient
+        initialBlocks={blocks}
+        handle={page.handle}
+        pageId={page.id}
+        isOwner={isOwner}
+      />
     </div>
   );
 }

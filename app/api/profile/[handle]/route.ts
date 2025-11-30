@@ -1,25 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import * as Sentry from "@sentry/nextjs";
-import { createServerSupabaseClient } from "@/config/supabase";
-import type { Tables } from "@/types/database.types";
 import { auth } from "@clerk/nextjs/server";
+import { createServerSupabaseClient } from "@/config/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
-
-type PagePayload = Pick<
-  Tables<"pages">,
-  "id" | "handle" | "title" | "description" | "image_url" | "owner_id"
->;
-
-type BlocksPayload = Pick<
-  Tables<"blocks">,
-  "id" | "type" | "ordering" | "created_at"
->;
-
-type BffPayload = {
-  page: PagePayload;
-  isOwner: boolean;
-  blocks: BlocksPayload[];
-};
+import type { BlockWithDetails } from "@/types/block";
+import type { PagePayload, ProfileBffPayload } from "@/types/profile";
 
 const normalizeHandle = (rawHandle: string): string =>
   rawHandle.trim().replace(/^@+/, "");
@@ -34,11 +19,11 @@ const buildHandleCandidates = (rawHandle: string): string[] => {
   );
 };
 
-const fetchPageAndProfile = async (
+const fetchPage = async (
   supabase: SupabaseClient,
   handleCandidates: string[]
-): Promise<{ page: PagePayload; blocks: BlocksPayload[] } | null> => {
-  const { data: page, error: pageError } = await supabase
+): Promise<PagePayload | null> => {
+  const { data, error } = await supabase
     .from("pages")
     .select("id, handle, title, description, image_url, owner_id")
     .in("handle", handleCandidates)
@@ -46,19 +31,8 @@ const fetchPageAndProfile = async (
     .order("created_at", { ascending: true })
     .maybeSingle<PagePayload>();
 
-  if (pageError) throw pageError;
-  if (!page) return null;
-
-  const { data: blocks, error: blocksError } = await supabase
-    .from("blocks")
-    .select("id, type, ordering, created_at")
-    .eq("page_id", page.id)
-    .order("ordering", { ascending: true, nullsFirst: true })
-    .order("created_at", { ascending: true });
-
-  if (blocksError) throw blocksError;
-
-  return { page, blocks: blocks ?? [] };
+  if (error) throw error;
+  return data;
 };
 
 export async function GET(
@@ -74,15 +48,27 @@ export async function GET(
     }
 
     const supabase = await createServerSupabaseClient();
-    const result = await fetchPageAndProfile(supabase, handleCandidates);
-    if (!result) {
+    const page = await fetchPage(supabase, handleCandidates);
+
+    if (!page) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const isOwner = Boolean(userId && userId === result.page.owner_id);
+    const isOwner = Boolean(userId && userId === page.owner_id);
+
+    const { data: blocks, error: blockError } = await supabase.rpc(
+      "get_blocks_with_details",
+      { p_page_id: page.id }
+    );
+
+    if (blockError) throw blockError;
 
     return NextResponse.json(
-      { ...result, isOwner } satisfies BffPayload,
+      {
+        page,
+        isOwner,
+        blocks: (blocks ?? []) as BlockWithDetails[],
+      } satisfies ProfileBffPayload,
       {
         status: 200,
       }
