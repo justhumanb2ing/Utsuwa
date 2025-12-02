@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Loader2, Trash2 } from "lucide-react";
 import type { BlockWithDetails } from "@/types/block";
 import type { BlockType } from "@/config/block-registry";
 
@@ -37,6 +38,8 @@ type PageBlocksProps = {
     data: Record<string, unknown>
   ) => void;
   onCancelPlaceholder: (placeholderId: string) => void;
+  onDeleteBlock?: (blockId: BlockWithDetails["id"]) => void;
+  deletingBlockIds?: Set<BlockWithDetails["id"]>;
 };
 
 const extractLinkData = (
@@ -64,6 +67,8 @@ export const PageBlocks = ({
   isOwner,
   onSavePlaceholder,
   onCancelPlaceholder,
+  onDeleteBlock,
+  deletingBlockIds,
 }: PageBlocksProps) => {
   const { setStatus } = useSaveStatus();
   const sortedBlocks = useMemo(
@@ -133,12 +138,33 @@ export const PageBlocks = ({
           const block = item.kind === "persisted" ? item.block : undefined;
           const type = item.kind === "persisted" ? item.block.type : item.type;
           const blockId = block?.id;
-          
+          const isDeleting =
+            Boolean(blockId && deletingBlockIds?.has(blockId));
+
           return (
             <div
               key={item.kind === "persisted" ? item.block.id : item.id}
-              className="rounded-lg border border-zinc-200 p-3 shadow-sm"
+              className="group relative rounded-lg border border-zinc-200 p-3 shadow-sm"
             >
+              {isOwner && blockId ? (
+                <Button
+                  type="button"
+                  size="icon-sm"
+                  variant="ghost"
+                  className={`absolute right-2 top-2 rounded-full border bg-white/90 shadow-sm transition-opacity ${
+                    isDeleting ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  }`}
+                  aria-label="블록 삭제"
+                  disabled={isDeleting}
+                  onClick={() => onDeleteBlock?.(blockId)}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <Trash2 className="size-4" aria-hidden />
+                  )}
+                </Button>
+              ) : null}
               <div className="mt-3 space-y-3">
                 {(() => {
                   switch (type) {
