@@ -3,15 +3,18 @@ import { auth } from "@clerk/nextjs/server";
 import * as Sentry from "@sentry/nextjs";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { updatePage } from "@/service/pages/update-page";
+import { createServerSupabaseClient } from "@/config/supabase";
 
 const requestSchema = z.object({
   pageId: z.string().min(1),
   handle: z.string().min(1),
+  ownerId: z.string().min(1),
   title: z.string().min(1),
   description: z.string().optional(),
   imageUrl: z.string().optional(),
 });
+
+const DEFAULT_ERROR_MESSAGE = "페이지 업데이트에 실패했습니다.";
 
 export const POST = async (req: Request) => {
   try {
@@ -40,32 +43,87 @@ export const POST = async (req: Request) => {
       );
     }
 
-    const { pageId, handle, title, description, imageUrl } = parsed.data;
+    const { pageId, handle, ownerId, title, description, imageUrl } = parsed.data;
 
-    const result = await updatePage({
-      pageId,
-      ownerId: userId,
-      title,
-      description,
-      imageUrl,
-    });
-
-    if (!result.ok) {
-      Sentry.captureMessage("페이지 업데이트 실패", {
-        level: "error",
-        extra: { reason: result.reason },
-      });
+    if (ownerId !== userId) {
       return NextResponse.json(
         {
           status: "error",
-          reason: result.reason,
-          message: "페이지 업데이트에 실패했습니다.",
+          reason: "FORBIDDEN",
+          message: "페이지를 수정할 권한이 없습니다.",
         },
-        { status: 400 }
+        { status: 403 }
       );
     }
 
-    revalidatePath(`/profile/${handle.trim()}`);
+    const supabase = await createServerSupabaseClient();
+
+    const { data: page, error: pageLookupError } = await supabase
+      .from("pages")
+      .select("id, owner_id")
+      .eq("id", pageId)
+      .maybeSingle();
+
+    if (pageLookupError) {
+      Sentry.captureException(pageLookupError);
+      return NextResponse.json(
+        {
+          status: "error",
+          reason: "PAGE_LOOKUP_FAILED",
+          message: DEFAULT_ERROR_MESSAGE,
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!page) {
+      return NextResponse.json(
+        {
+          status: "error",
+          reason: "PAGE_NOT_FOUND",
+          message: DEFAULT_ERROR_MESSAGE,
+        },
+        { status: 404 }
+      );
+    }
+
+    if (page.owner_id !== userId) {
+      return NextResponse.json(
+        {
+          status: "error",
+          reason: "FORBIDDEN",
+          message: "페이지를 수정할 권한이 없습니다.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const { error } = await supabase
+      .from("pages")
+      .update({
+        title: title.trim(),
+        description: description?.trim() || null,
+        image_url: imageUrl?.trim() || null,
+      })
+      .eq("id", pageId)
+      .eq("owner_id", userId);
+
+    if (error) {
+      Sentry.captureException(error);
+      return NextResponse.json(
+        {
+          status: "error",
+          reason: error.code ?? "UPDATE_FAILED",
+          message: DEFAULT_ERROR_MESSAGE,
+        },
+        { status: 500 }
+      );
+    }
+
+    const normalizedHandle = handle.trim();
+
+    revalidatePath(`/profile/${normalizedHandle}`);
+    revalidatePath(`/api/profile/${normalizedHandle}`);
 
     return NextResponse.json(
       { status: "success", message: "페이지가 업데이트되었습니다." },

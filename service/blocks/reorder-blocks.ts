@@ -1,7 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BlockWithDetails } from "@/types/block";
-import type { PageId } from "@/types/profile";
+import type { PageHandle, PageId } from "@/types/profile";
 
 export type ReorderBlockPayload = {
   id: BlockWithDetails["id"];
@@ -9,8 +8,8 @@ export type ReorderBlockPayload = {
 };
 
 export type ReorderBlocksParams = {
-  supabase: SupabaseClient;
   pageId: PageId;
+  handle: PageHandle;
   blocks: ReorderBlockPayload[];
 };
 
@@ -28,25 +27,31 @@ const DEFAULT_ERROR_MESSAGE = "블록 순서를 변경하지 못했습니다.";
 export const requestReorderBlocks = async (
   params: ReorderBlocksParams
 ): Promise<ReorderBlocksResult> => {
-  const { supabase, pageId, blocks } = params;
+  const { pageId, handle, blocks } = params;
 
   try {
     return await Sentry.startSpan(
-      { op: "rpc", name: "Reorder profile blocks" },
+      { op: "http.client", name: "Reorder profile blocks" },
       async (span) => {
         span.setAttribute("page.id", pageId);
         span.setAttribute("block.count", blocks.length);
 
-        const { error } = await supabase.rpc("reorder_blocks_after_dnd", {
-          p_page_id: pageId,
-          p_blocks: blocks,
+        const response = await fetch("/api/profile/block", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pageId, handle, blocks }),
         });
 
-        if (error) {
-          return {
-            status: "error",
-            message: error.message ?? DEFAULT_ERROR_MESSAGE,
-          };
+        const body = (await response.json().catch(() => ({}))) as {
+          status?: "success" | "error";
+          reason?: string;
+          message?: string;
+        };
+
+        if (!response.ok || body.status === "error") {
+          const message =
+            body.message ?? body.reason ?? DEFAULT_ERROR_MESSAGE;
+          return { status: "error", message };
         }
 
         return { status: "success" };

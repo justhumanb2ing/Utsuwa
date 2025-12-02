@@ -1,9 +1,9 @@
 import * as Sentry from "@sentry/nextjs";
-import { createServerSupabaseClient } from "@/config/supabase";
 
 export type UpdatePageParams = {
   pageId: string;
   ownerId: string;
+  handle: string;
   title?: string;
   description?: string;
   imageUrl?: string;
@@ -16,27 +16,43 @@ export type UpdatePageResult =
 export const updatePage = async (
   params: UpdatePageParams
 ): Promise<UpdatePageResult> => {
-  const { pageId, ownerId, title, description, imageUrl } = params;
+  const { pageId, ownerId, handle, title, description, imageUrl } = params;
 
   try {
-    const supabase = await createServerSupabaseClient();
+    return await Sentry.startSpan(
+      { op: "http.client", name: "Update page" },
+      async (span) => {
+        span.setAttribute("page.id", pageId);
+        span.setAttribute("page.handle", handle);
 
-    const { error } = await supabase
-      .from("pages")
-      .update({
-        title: title?.trim() || null,
-        description: description?.trim() || null,
-        image_url: imageUrl?.trim() || null,
-      })
-      .eq("id", pageId)
-      .eq("owner_id", ownerId);
+        const response = await fetch("/api/profile/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pageId,
+            ownerId,
+            handle,
+            title,
+            description,
+            imageUrl,
+          }),
+        });
 
-    if (error) {
-      Sentry.captureException(error);
-      return { ok: false, reason: error.message };
-    }
+        const body = (await response.json().catch(() => ({}))) as {
+          status?: "success" | "error";
+          reason?: string;
+          message?: string;
+        };
 
-    return { ok: true };
+        if (!response.ok || body.status === "error") {
+          const reason =
+            body.reason ?? body.message ?? "페이지 업데이트에 실패했습니다.";
+          return { ok: false, reason };
+        }
+
+        return { ok: true };
+      }
+    );
   } catch (error) {
     Sentry.captureException(error);
     const reason = error instanceof Error ? error.message : "Unknown error";

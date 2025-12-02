@@ -22,6 +22,19 @@ const deleteRequestSchema = z.object({
   handle: z.string().min(1),
 });
 
+const reorderRequestSchema = z.object({
+  pageId: z.string().uuid(),
+  handle: z.string().min(1),
+  blocks: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        ordering: z.number(),
+      })
+    )
+    .min(1),
+});
+
 export const POST = async (req: Request) => {
   try {
     const { userId } = await auth();
@@ -269,6 +282,116 @@ export const DELETE = async (req: Request) => {
           status: "error",
           reason: "BLOCK_DELETE_FAILED",
           message: "블록을 삭제하지 못했습니다.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const normalizedPageHandle = page.handle?.trim() ?? "";
+    const normalizedRequestHandle = handle.trim().replace(/^@+/, "");
+    const targetHandle = normalizedPageHandle || normalizedRequestHandle;
+
+    if (targetHandle) {
+      revalidatePath(`/profile/${targetHandle}`);
+      revalidatePath(`/api/profile/${targetHandle}`);
+    }
+
+    if (normalizedRequestHandle && normalizedRequestHandle !== targetHandle) {
+      revalidatePath(`/profile/${normalizedRequestHandle}`);
+      revalidatePath(`/api/profile/${normalizedRequestHandle}`);
+    }
+
+    return NextResponse.json({ status: "success" }, { status: 200 });
+  } catch (error) {
+    Sentry.captureException(error);
+    return NextResponse.json(
+      { status: "error", reason: "UNKNOWN_ERROR", message: "서버 오류" },
+      { status: 500 }
+    );
+  }
+};
+
+export const PATCH = async (req: Request) => {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json(
+        {
+          status: "error",
+          reason: "UNAUTHORIZED",
+          message: "로그인이 필요합니다.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const parsed = reorderRequestSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          status: "error",
+          reason: "INVALID_PAYLOAD",
+          message: "잘못된 요청입니다.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const { pageId, handle, blocks } = parsed.data;
+    const supabase = await createServerSupabaseClient();
+
+    const { data: page, error: pageLookupError } = await supabase
+      .from("pages")
+      .select("id, handle, owner_id")
+      .eq("id", pageId)
+      .maybeSingle();
+
+    if (pageLookupError) {
+      Sentry.captureException(pageLookupError);
+      return NextResponse.json(
+        {
+          status: "error",
+          reason: "PAGE_LOOKUP_FAILED",
+          message: "페이지를 조회하지 못했습니다.",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!page) {
+      return NextResponse.json(
+        {
+          status: "error",
+          reason: "PAGE_NOT_FOUND",
+          message: "페이지를 찾을 수 없습니다.",
+        },
+        { status: 404 }
+      );
+    }
+
+    if (page.owner_id !== userId) {
+      return NextResponse.json(
+        {
+          status: "error",
+          reason: "FORBIDDEN",
+          message: "블록을 수정할 권한이 없습니다.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const { error: rpcError } = await supabase.rpc(
+      "reorder_blocks_after_dnd",
+      { p_page_id: pageId, p_blocks: blocks }
+    );
+
+    if (rpcError) {
+      Sentry.captureException(rpcError);
+      return NextResponse.json(
+        {
+          status: "error",
+          reason: "BLOCK_REORDER_FAILED",
+          message: "블록 순서를 변경하지 못했습니다.",
         },
         { status: 500 }
       );

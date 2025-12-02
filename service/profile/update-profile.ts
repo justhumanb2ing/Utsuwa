@@ -1,4 +1,3 @@
-import { ProfileBffPayload } from "@/types/profile";
 import { clerkClient } from "@clerk/nextjs/server";
 import * as Sentry from "@sentry/nextjs";
 
@@ -65,24 +64,4 @@ export const updateProfile = async (
     const message = error instanceof Error ? error.message : "Unknown error";
     return { ok: false, reason: message };
   }
-};
-
-type BffResponse = ProfileBffPayload;
-
-export const fetchProfileFromBff = async (
-  handle: string
-): Promise<BffResponse | null> => {
-  // const apiUrl = await buildApiUrl(handle);
-  // const headerStore = await headers();
-  const response = await fetch(`/api/profile/${handle}`, {
-    // headers: {
-    //   cookie: headerStore.get("cookie") ?? "",
-    // },
-  });
-
-  if (!response.ok) {
-    if (response.status === 404) return null;
-    throw new Error(`Profile BFF fetch failed: ${response.status}`);
-  }
-  return (await response.json()) as BffResponse;
 };

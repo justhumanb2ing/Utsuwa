@@ -18,6 +18,7 @@ import { usePageForm } from "@/hooks/use-page-form";
 type ProfileFormProps = {
   pageId: string;
   handle: string;
+  ownerId: string;
   isOwner: boolean;
   pageTitle?: string;
   pageDescription?: string;
@@ -27,6 +28,7 @@ type ProfileFormProps = {
 export function ProfileForm({
   pageId,
   handle,
+  ownerId,
   isOwner,
   pageTitle,
   pageDescription,
@@ -36,6 +38,7 @@ export function ProfileForm({
   const { form, preview, onSubmit } = usePageForm({
     pageId,
     handle,
+    ownerId,
     isOwner,
     pageTitle,
     pageDescription,
@@ -53,6 +56,7 @@ export function ProfileForm({
       >
         <input type="hidden" {...form.register("pageId")} />
         <input type="hidden" {...form.register("handle")} />
+        <input type="hidden" {...form.register("ownerId")} />
         <input type="hidden" {...form.register("imageUrl")} />
 
         <div className="space-y-2">

@@ -1,5 +1,4 @@
 import * as Sentry from "@sentry/nextjs";
-import { createServerSupabaseClient } from "@/config/supabase";
 import type { Tables } from "@/types/database.types";
 
 export type OwnerPages = Array<
@@ -12,19 +11,32 @@ export type OwnerPages = Array<
  */
 export const fetchPagesByOwnerId = async (ownerId: string): Promise<OwnerPages> => {
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data, error } = await supabase
-      .from("pages")
-      .select("id, handle, title, ordering")
-      .eq("owner_id", ownerId)
-      .order("ordering", { ascending: true, nullsFirst: false })
-      .order("created_at", { ascending: true });
+    return await Sentry.startSpan(
+      { op: "http.client", name: "Fetch pages by owner" },
+      async (span) => {
+        span.setAttribute("owner.id", ownerId);
 
-    if (error) {
-      throw error;
-    }
+        const response = await fetch("/api/profile/pages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ownerId }),
+        });
 
-    return data ?? [];
+        const body = (await response.json().catch(() => ({}))) as {
+          status?: "success" | "error";
+          pages?: OwnerPages;
+          message?: string;
+        };
+
+        if (!response.ok || body.status === "error") {
+          const message =
+            body.message ?? "페이지 목록을 불러오지 못했습니다.";
+          throw new Error(message);
+        }
+
+        return body.pages ?? [];
+      }
+    );
   } catch (error) {
     Sentry.captureException(error);
     return [];

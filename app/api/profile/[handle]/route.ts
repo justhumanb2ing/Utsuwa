@@ -40,7 +40,7 @@ export async function GET(
 ) {
   try {
     const { userId } = await auth();
-
+    
     const { handle } = await params;
     const handleCandidates = buildHandleCandidates(handle);
     if (handleCandidates.length === 0) {

@@ -10,6 +10,7 @@ import { useSaveStatus } from "@/components/profile/save-status-context";
 const PageSchema = z.object({
   pageId: z.string(),
   handle: z.string(),
+  ownerId: z.string(),
   title: z.string().min(1, "필수 입력"),
   description: z.string().optional(),
   image: z.any().optional(),
@@ -21,6 +22,7 @@ export type PageSchemaType = z.infer<typeof PageSchema>;
 type UsePageFormParams = {
   pageId: string;
   handle: string;
+  ownerId: string;
   isOwner: boolean;
   pageTitle?: string;
   pageDescription?: string;
@@ -81,6 +83,7 @@ const requestUpdatePage = async (
 export const usePageForm = ({
   pageId,
   handle,
+  ownerId,
   isOwner,
   pageTitle,
   pageDescription,
@@ -93,6 +96,7 @@ export const usePageForm = ({
     defaultValues: {
       pageId,
       handle,
+      ownerId,
       title: pageTitle ?? "",
       description: pageDescription ?? "",
       image: undefined,
@@ -144,6 +148,7 @@ export const usePageForm = ({
         const result = await requestUpdatePage({
           pageId: data.pageId,
           handle: data.handle,
+          ownerId: data.ownerId,
           title: data.title,
           description: data.description ?? "",
           imageUrl: resolvedImageUrl,

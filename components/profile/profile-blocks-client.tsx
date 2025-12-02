@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState, useTransition } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useCallback, useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import type { BlockWithDetails } from "@/types/block";
@@ -11,10 +11,7 @@ import { BlockRegistryPanel } from "@/components/layout/block-registry";
 import { PageBlocks } from "@/components/profile/page-blocks";
 import { toastManager } from "@/components/ui/toast";
 import { useSaveStatus } from "@/components/profile/save-status-context";
-import { requestCreateBlock } from "@/service/blocks/create-block";
-import { requestDeleteBlock } from "@/service/blocks/delete-block";
-import { requestReorderBlocks } from "@/service/blocks/reorder-blocks";
-import { createBrowserSupabaseClient } from "@/config/supabase-browser";
+import { blockQueryOptions } from "@/service/blocks/block-query-options";
 
 type BlockItem =
   | { kind: "persisted"; block: BlockWithDetails }
@@ -48,14 +45,18 @@ export const ProfileBlocksClient = ({
   const [deletingBlockIds, setDeletingBlockIds] = useState<Set<string>>(
     () => new Set()
   );
-  const [isPending, startTransition] = useTransition();
-  const [isReordering, setIsReordering] = useState(false);
-  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
   const { setStatus } = useSaveStatus();
-  const supabase = useMemo(
-    () => createBrowserSupabaseClient(async () => await getToken()),
-    [getToken]
+  const createBlockMutation = useMutation(
+    blockQueryOptions.create({ pageId, handle, queryClient })
   );
+  const deleteBlockMutation = useMutation(
+    blockQueryOptions.delete({ handle, queryClient })
+  );
+  const reorderBlocksMutation = useMutation(
+    blockQueryOptions.reorder({ pageId, handle, queryClient })
+  );
+  const isReordering = reorderBlocksMutation.isPending;
 
   const handleAddPlaceholder = useCallback(
     (type: BlockType) => {
@@ -98,7 +99,10 @@ export const ProfileBlocksClient = ({
         });
 
         try {
-          const result = await requestDeleteBlock({ blockId, handle });
+          const result = await deleteBlockMutation.mutateAsync({
+            blockId,
+            handle,
+          });
 
           if (result.status === "error") {
             setStatus("error");
@@ -130,12 +134,18 @@ export const ProfileBlocksClient = ({
         }
       })();
     },
-    [deletingBlockIds, handle, isOwner, setStatus]
+    [deleteBlockMutation, deletingBlockIds, handle, isOwner, setStatus]
   );
 
   const handleReorderBlocks = useCallback(
     async ({ active, over }: DragEndEvent) => {
-      if (!isOwner || !over || active.id === over.id || isReordering) return;
+      if (
+        !isOwner ||
+        !over ||
+        active.id === over.id ||
+        reorderBlocksMutation.isPending
+      )
+        return;
 
       const persistedItems = items.filter(isPersistedBlockItem);
       const activeIndex = persistedItems.findIndex(
@@ -160,7 +170,6 @@ export const ProfileBlocksClient = ({
       }));
 
       setItems([...reorderedPersisted, ...placeholderItems]);
-      setIsReordering(true);
       setStatus("saving");
 
       const payload = reorderedPersisted.map(({ block }) => ({
@@ -169,9 +178,9 @@ export const ProfileBlocksClient = ({
       }));
 
       try {
-        const result = await requestReorderBlocks({
-          supabase,
+        const result = await reorderBlocksMutation.mutateAsync({
           pageId,
+          handle,
           blocks: payload,
         });
 
@@ -187,62 +196,72 @@ export const ProfileBlocksClient = ({
         }
 
         setStatus("saved");
-      } finally {
-        setIsReordering(false);
+      } catch (error) {
+        setItems(previousItems);
+        setStatus("error");
+        const message =
+          error instanceof Error ? error.message : "잠시 후 다시 시도해 주세요.";
+        toastManager.add({
+          title: "순서 변경 실패",
+          description: message,
+          type: "error",
+        });
       }
     },
-    [isOwner, isReordering, items, pageId, setStatus, supabase]
+    [handle, isOwner, items, pageId, reorderBlocksMutation, setStatus]
   );
 
   const handleSavePlaceholder = useCallback(
-    (placeholderId: string, type: BlockType, data: Record<string, unknown>) => {
-      if (!isOwner || isPending) return;
+    async (
+      placeholderId: string,
+      type: BlockType,
+      data: Record<string, unknown>
+    ) => {
+      if (!isOwner || createBlockMutation.isPending) return;
 
-      startTransition(async () => {
-        setStatus("saving");
-        const toastId = toastManager.add({
-          title: "블록 생성 중…",
-          type: "loading",
-          timeout: 0,
-        });
-
-        const result = await requestCreateBlock({
-          pageId,
-          handle,
-          type,
-          data,
-        });
-
-        if (result.status === "error") {
-          setStatus("error");
-          toastManager.update(toastId, {
-            title: "블록 생성 실패",
-            description: result.message,
-            type: "error",
-          });
-          return;
-        }
-
-        toastManager.update(toastId, {
-          title: "블록이 생성되었습니다.",
-          type: "success",
-        });
-
-        setItems((prev) =>
-          prev.map((item) => {
-            if (item.kind === "placeholder" && item.id === placeholderId) {
-              return {
-                kind: "persisted",
-                block: result.block,
-              };
-            }
-            return item;
-          })
-        );
-        setStatus("saved");
+      setStatus("saving");
+      const toastId = toastManager.add({
+        title: "블록 생성 중…",
+        type: "loading",
+        timeout: 0,
       });
+
+      const result = await createBlockMutation.mutateAsync({
+        pageId,
+        handle,
+        type,
+        data,
+      });
+
+      if (result.status === "error") {
+        setStatus("error");
+        toastManager.update(toastId, {
+          title: "블록 생성 실패",
+          description: result.message,
+          type: "error",
+        });
+        return;
+      }
+
+      toastManager.update(toastId, {
+        title: "블록이 생성되었습니다.",
+        type: "success",
+      });
+
+      setItems((prev) =>
+        prev.map((item) => {
+          if (item.kind === "placeholder" && item.id === placeholderId) {
+            return {
+              kind: "persisted",
+              block: result.block,
+            };
+          }
+          return item;
+        })
+      );
+      setStatus("saved");
     },
-    [handle, isOwner, isPending, pageId, setStatus]
+    [createBlockMutation, handle, isOwner, pageId, setStatus]
   );
 
   const visibleItems = useMemo(() => items, [items]);

@@ -1,7 +1,8 @@
 import { currentUser } from "@clerk/nextjs/server";
 import * as Sentry from "@sentry/nextjs";
+import { getQueryClient } from "@/lib/get-query-client";
+import { pageQueryOptions } from "@/service/pages/page-query-options";
 import type { OwnerPages } from "@/service/pages/fetch-pages-by-owner";
-import { fetchPagesByOwnerId } from "@/service/pages/fetch-pages-by-owner";
 import HeaderClient from "./header-client";
 
 type PageLink = {
@@ -33,7 +34,10 @@ export default async function Header() {
 
   if (user?.id) {
     try {
-      const pages = await fetchPagesByOwnerId(user.id);
+      const queryClient = getQueryClient();
+      const pages = await queryClient.ensureQueryData(
+        pageQueryOptions.byOwner(user.id)
+      );
       pageLinks = toPageLinks(pages);
     } catch (error) {
       Sentry.captureException(error);

@@ -34,6 +34,7 @@ export const ProfilePageClient = ({
         <ProfileForm
           pageId={page.id}
           handle={page.handle}
+          ownerId={page.owner_id}
           isOwner={isOwner}
           pageTitle={page.title ?? undefined}
           pageDescription={page.description ?? undefined}
