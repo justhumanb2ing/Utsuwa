@@ -1,68 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toastManager } from "@/components/ui/toast";
 import { useSaveStatus } from "@/components/profile/save-status-context";
-
-type SaveResponse =
-  | { status: "success"; blockId: string }
-  | { status: "error"; reason?: string; message: string };
-
-const saveLinkBlock = async (params: {
-  blockId: string;
-  handle: string;
-  url: string;
-  title: string;
-}): Promise<SaveResponse> => {
-  const response = await fetch("/api/profile/block/link", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
-  });
-
-  const data = (await response.json().catch(() => ({}))) as SaveResponse;
-
-  if (!response.ok || data.status === "error") {
-    return {
-      status: "error",
-      reason: data.status === "error" ? data.reason : "REQUEST_FAILED",
-      message:
-        data.status === "error" ? data.message : "링크를 저장하지 못했습니다.",
-    };
-  }
-
-  return data;
-};
-
-const saveTextBlock = async (params: {
-  blockId: string;
-  handle: string;
-  content: string;
-}): Promise<SaveResponse> => {
-  const response = await fetch("/api/profile/block/text", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
-  });
-
-  const data = (await response.json().catch(() => ({}))) as SaveResponse;
-
-  if (!response.ok || data.status === "error") {
-    return {
-      status: "error",
-      reason: data.status === "error" ? data.reason : "REQUEST_FAILED",
-      message:
-        data.status === "error"
-          ? data.message
-          : "텍스트를 저장하지 못했습니다.",
-    };
-  }
-
-  return data;
-};
+import { blockQueryOptions } from "@/service/blocks/block-query-options";
 
 export type LinkBlockEditorProps = {
   mode: "placeholder" | "persisted";
@@ -85,6 +30,7 @@ export const LinkBlockEditor = ({
   onCancelPlaceholder,
 }: LinkBlockEditorProps) => {
   const { setStatus } = useSaveStatus();
+  const updateBlockMutation = useMutation(blockQueryOptions.updateContent());
   const [url, setUrl] = useState(data.url ?? "");
   const [title, setTitle] = useState(data.title ?? "");
   const [lastSaved, setLastSaved] = useState({
@@ -127,9 +73,10 @@ export const LinkBlockEditor = ({
 
       try {
         if (mode === "placeholder" && onSavePlaceholder) {
-          onSavePlaceholder({ url: trimmedUrl, title: trimmedTitle });
+          await onSavePlaceholder({ url: trimmedUrl, title: trimmedTitle });
         } else if (mode === "persisted" && blockId) {
-          const result = await saveLinkBlock({
+          const result = await updateBlockMutation.mutateAsync({
+            type: "link",
             blockId,
             handle,
             url: trimmedUrl,
@@ -146,13 +93,6 @@ export const LinkBlockEditor = ({
         if (resetTimer.current) clearTimeout(resetTimer.current);
         resetTimer.current = setTimeout(() => setStatus("idle"), 5000);
       } catch (error) {
-        const description =
-          error instanceof Error ? error.message : "잠시 후 다시 시도해 주세요.";
-        toastManager.add({
-          title: "저장 실패",
-          description,
-          type: "error",
-        });
         setStatus("error");
       }
     }, 1200);
@@ -169,6 +109,7 @@ export const LinkBlockEditor = ({
     setStatus,
     title,
     url,
+    updateBlockMutation,
   ]);
 
   return (
@@ -216,6 +157,7 @@ export const TextBlockEditor = ({
   onCancelPlaceholder,
 }: TextBlockEditorProps) => {
   const { setStatus } = useSaveStatus();
+  const updateBlockMutation = useMutation(blockQueryOptions.updateContent());
   const [content, setContent] = useState(data.content ?? "");
   const [lastSaved, setLastSaved] = useState((data.content ?? "").trim());
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -247,7 +189,8 @@ export const TextBlockEditor = ({
         if (mode === "placeholder" && onSavePlaceholder) {
           await onSavePlaceholder({ content: trimmed });
         } else if (mode === "persisted" && blockId) {
-          const result = await saveTextBlock({
+          const result = await updateBlockMutation.mutateAsync({
+            type: "text",
             blockId,
             handle,
             content: trimmed,
@@ -264,7 +207,9 @@ export const TextBlockEditor = ({
         resetTimer.current = setTimeout(() => setStatus("idle"), 1500);
       } catch (error) {
         const description =
-          error instanceof Error ? error.message : "잠시 후 다시 시도해 주세요.";
+          error instanceof Error
+            ? error.message
+            : "잠시 후 다시 시도해 주세요.";
         toastManager.add({
           title: "저장 실패",
           description,
@@ -284,6 +229,7 @@ export const TextBlockEditor = ({
     mode,
     onSavePlaceholder,
     setStatus,
+    updateBlockMutation,
   ]);
 
   return (

@@ -5,6 +5,7 @@ import { profileQueryOptions } from "../profile/profile-query-options";
 import { requestCreateBlock } from "./create-block";
 import { requestDeleteBlock } from "./delete-block";
 import { requestReorderBlocks } from "./reorder-blocks";
+import { requestUpdateBlockContent } from "./update-block-content";
 
 const blockQueryKey = ["block"] as const;
 const resolveQueryClient = (client?: QueryClient): QueryClient =>
@@ -113,6 +114,43 @@ export const blockQueryOptions = {
         if (targetHandle) {
           await queryClient.cancelQueries({
             queryKey: profileQueryOptions.byHandle({ handle: targetHandle }).queryKey,
+            exact: true,
+          });
+        }
+
+        return { handle: targetHandle };
+      },
+      onError: async (_error, _variables, context) => {
+        const queryClient = resolveQueryClient(options?.queryClient);
+        invalidateProfile(context?.handle, queryClient);
+      },
+      onSettled: async (_data, _error, variables, context) => {
+        const queryClient = resolveQueryClient(options?.queryClient);
+        const targetHandle = variables.handle ?? context?.handle ?? options?.handle;
+        invalidateProfile(targetHandle, queryClient);
+      },
+    }),
+  updateContent: (options?: BlockMutationOptionsArgs) =>
+    mutationOptions({
+      mutationKey: [
+        ...blockQueryKey,
+        "update-content",
+        options?.blockId ?? "dynamic",
+        options?.handle ?? "global",
+      ] as const,
+      meta: {
+        shouldShowToast: true,
+        toastKey: 'updateContent'
+      },
+      mutationFn: requestUpdateBlockContent,
+      onMutate: async (variables) => {
+        const queryClient = resolveQueryClient(options?.queryClient);
+        const targetHandle = variables.handle ?? options?.handle;
+
+        if (targetHandle) {
+          await queryClient.cancelQueries({
+            queryKey: profileQueryOptions.byHandle({ handle: targetHandle })
+              .queryKey,
             exact: true,
           });
         }
