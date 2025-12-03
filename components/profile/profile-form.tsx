@@ -55,7 +55,6 @@ export function ProfileForm({
         className="space-y-5"
       >
         <input type="hidden" {...form.register("pageId")} />
-        <input type="hidden" {...form.register("handle")} />
         <input type="hidden" {...form.register("ownerId")} />
         <input type="hidden" {...form.register("imageUrl")} />
 

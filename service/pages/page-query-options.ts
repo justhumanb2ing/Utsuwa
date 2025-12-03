@@ -7,7 +7,9 @@ import {
 import { getQueryClient } from "@/lib/get-query-client";
 import { fetchPagesByOwnerId } from "./fetch-pages-by-owner";
 import { updatePage } from "./update-page";
+import { changePageHandle } from "./change-handle";
 import { profileQueryOptions } from "../profile/profile-query-options";
+import { normalizeHandle } from "@/lib/handle";
 
 const pageQueryKey = ["page"] as const;
 
@@ -19,6 +21,31 @@ type UpdateOptions = {
   handle?: string;
   ownerId?: string;
   queryClient?: QueryClient;
+};
+
+type ChangeHandleOptions = {
+  pageId?: string;
+  handle?: string;
+  ownerId?: string;
+  queryClient?: QueryClient;
+};
+
+const invalidateProfileByHandleVariants = (
+  handle: string | undefined,
+  queryClient: QueryClient
+) => {
+  if (!handle) return;
+
+  const normalized = normalizeHandle(handle);
+  const prefixed = normalized ? `@${normalized}` : "";
+
+  [handle, normalized, prefixed].forEach((candidate) => {
+    if (!candidate) return;
+
+    queryClient.invalidateQueries({
+      queryKey: profileQueryOptions.byHandle({ handle: candidate }).queryKey,
+    });
+  });
 };
 
 /**
@@ -102,6 +129,63 @@ export const pageQueryOptions = {
               .queryKey,
           });
         }
+      },
+    }),
+  changeHandle: (options?: ChangeHandleOptions) =>
+    mutationOptions({
+      mutationKey: [
+        ...pageQueryKey,
+        "change-handle",
+        options?.pageId ?? "global",
+      ] as const,
+      mutationFn: changePageHandle,
+      onMutate: async (variables) => {
+        const queryClient = resolveQueryClient(options?.queryClient);
+
+        if (variables.ownerId) {
+          await queryClient.cancelQueries({
+            queryKey: pageQueryOptions.byOwner(variables.ownerId).queryKey,
+          });
+        }
+
+        invalidateProfileByHandleVariants(variables.currentHandle, queryClient);
+
+        return {
+          ownerId: variables.ownerId,
+          currentHandle: variables.currentHandle,
+          nextHandle: variables.nextHandle,
+        };
+      },
+      onError: async (_error, _variables, context) => {
+        const queryClient = resolveQueryClient(options?.queryClient);
+
+        if (context?.ownerId) {
+          void queryClient.invalidateQueries({
+            queryKey: pageQueryOptions.byOwner(context.ownerId).queryKey,
+          });
+        }
+
+        invalidateProfileByHandleVariants(context?.currentHandle, queryClient);
+        invalidateProfileByHandleVariants(context?.nextHandle, queryClient);
+      },
+      onSettled: async (_data, _error, variables, context) => {
+        const queryClient = resolveQueryClient(options?.queryClient);
+        const targetOwnerId = variables.ownerId ?? context?.ownerId;
+
+        if (targetOwnerId) {
+          void queryClient.invalidateQueries({
+            queryKey: pageQueryOptions.byOwner(targetOwnerId).queryKey,
+          });
+        }
+
+        invalidateProfileByHandleVariants(
+          context?.currentHandle ?? options?.handle,
+          queryClient
+        );
+        invalidateProfileByHandleVariants(
+          variables.nextHandle ?? context?.nextHandle ?? options?.handle,
+          queryClient
+        );
       },
     }),
 };

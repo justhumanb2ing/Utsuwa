@@ -11,6 +11,7 @@ import {
 } from "./save-status-context";
 import { ProfileForm } from "./profile-form";
 import { ProfileBlocksClient } from "./profile-blocks-client";
+import { HandleChangeForm } from "./handle-change-form";
 
 import type { FetchProfileParams } from "@/service/profile/fetch-profile";
 
@@ -41,6 +42,14 @@ export default function ProfilePageClient({
                   <SaveStatusProvider>
                     <main className="space-y-6">
                       {isOwner && <StatusSection />}
+                      {isOwner ? (
+                        <HandleChangeForm
+                          pageId={page.id}
+                          ownerId={page.owner_id}
+                          handle={page.handle}
+                          isOwner={isOwner}
+                        />
+                      ) : null}
                       <ProfileForm
                         pageId={page.id}
                         handle={page.handle}

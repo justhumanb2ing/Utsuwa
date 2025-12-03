@@ -7,10 +7,10 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSaveStatus } from "@/components/profile/save-status-context";
 import { pageQueryOptions } from "@/service/pages/page-query-options";
+import { normalizeHandle } from "@/lib/handle";
 
 const PageSchema = z.object({
   pageId: z.string(),
-  handle: z.string(),
   ownerId: z.string(),
   title: z.string().min(1, "필수 입력"),
   description: z.string().optional(),
@@ -52,10 +52,6 @@ const uploadImage = async (file: File, handle: string): Promise<string> => {
   return data.url;
 };
 
-type UpdatePageResponse =
-  | { status: "success"; message: string }
-  | { status: "error"; message: string; reason?: string };
-
 export const usePageForm = ({
   pageId,
   handle,
@@ -67,15 +63,20 @@ export const usePageForm = ({
 }: UsePageFormParams) => {
   const { setStatus } = useSaveStatus();
   const queryClient = useQueryClient();
+  const normalizedHandle = normalizeHandle(handle);
   const updatePageMutation = useMutation(
-    pageQueryOptions.update({ pageId, handle, ownerId, queryClient })
+    pageQueryOptions.update({
+      pageId,
+      handle: normalizedHandle,
+      ownerId,
+      queryClient,
+    })
   );
   const wasDirtyRef = useRef<boolean>(false);
   const form = useForm<PageSchemaType>({
     resolver: zodResolver(PageSchema),
     defaultValues: {
       pageId,
-      handle,
       ownerId,
       title: pageTitle ?? "",
       description: pageDescription ?? "",
@@ -117,31 +118,29 @@ export const usePageForm = ({
       try {
         let resolvedImageUrl = data.imageUrl ?? pageImageUrl ?? "";
         if (data.image instanceof File && data.image.size > 0) {
-          resolvedImageUrl = await uploadImage(data.image, data.handle);
+          resolvedImageUrl = await uploadImage(data.image, normalizedHandle);
         }
 
-        const result = await updatePageMutation.mutateAsync(
-          {
+        const shouldUpdatePage =
+          Boolean(form.formState.dirtyFields.title) ||
+          Boolean(form.formState.dirtyFields.description) ||
+          Boolean(form.formState.dirtyFields.image) ||
+          Boolean(form.formState.dirtyFields.imageUrl);
+
+        if (shouldUpdatePage) {
+          const result = await updatePageMutation.mutateAsync({
             pageId: data.pageId,
-            handle: data.handle,
+            handle: normalizedHandle,
             ownerId: data.ownerId,
             title: data.title,
             description: data.description ?? "",
             imageUrl: resolvedImageUrl,
-          },
-          {
-            onSuccess: () => {
-              setStatus("saved");
-              wasDirtyRef.current = false;
-            },
-            onError: () => {
-              setStatus("error");
-            },
-          }
-        );
+          });
 
-        if (!result.ok) {
-          throw new Error(result.reason);
+          if (!result.ok) {
+            setStatus("error");
+            throw new Error(result.reason);
+          }
         }
 
         form.reset({
@@ -149,12 +148,14 @@ export const usePageForm = ({
           image: undefined,
           imageUrl: resolvedImageUrl,
         });
+        setStatus("saved");
+        wasDirtyRef.current = false;
       } catch (error) {
         setStatus("error");
         throw error;
       }
     },
-    [form, pageImageUrl]
+    [form, normalizedHandle, pageImageUrl, setStatus, updatePageMutation]
   );
 
   useEffect(() => {
