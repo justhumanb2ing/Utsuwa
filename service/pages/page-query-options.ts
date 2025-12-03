@@ -43,6 +43,10 @@ export const pageQueryOptions = {
         "update",
         options?.pageId ?? "global",
       ] as const,
+      meta: {
+        shouldShowToast: true,
+        toastKey: "hello!!!",
+      },
       mutationFn: updatePage,
       onMutate: async (variables) => {
         const queryClient = resolveQueryClient(options?.queryClient);

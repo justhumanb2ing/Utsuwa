@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toastManager } from "@/components/ui/toast";
 import { useSaveStatus } from "@/components/profile/save-status-context";
+import { pageQueryOptions } from "@/service/pages/page-query-options";
 
 const PageSchema = z.object({
   pageId: z.string(),
@@ -55,31 +56,6 @@ type UpdatePageResponse =
   | { status: "success"; message: string }
   | { status: "error"; message: string; reason?: string };
 
-const requestUpdatePage = async (
-  payload: PageSchemaType
-): Promise<UpdatePageResponse> => {
-  const res = await fetch("/api/profile/update", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  const data = (await res.json().catch(() => ({}))) as UpdatePageResponse;
-
-  if (!res.ok || data.status === "error") {
-    return {
-      status: "error",
-      reason: data.status === "error" ? data.reason : "REQUEST_FAILED",
-      message:
-        data.status === "error"
-          ? data.message
-          : "페이지 업데이트 요청이 실패했습니다.",
-    };
-  }
-
-  return data;
-};
-
 export const usePageForm = ({
   pageId,
   handle,
@@ -90,6 +66,10 @@ export const usePageForm = ({
   pageImageUrl,
 }: UsePageFormParams) => {
   const { setStatus } = useSaveStatus();
+  const queryClient = useQueryClient();
+  const updatePageMutation = useMutation(
+    pageQueryOptions.update({ pageId, handle, ownerId, queryClient })
+  );
   const wasDirtyRef = useRef<boolean>(false);
   const form = useForm<PageSchemaType>({
     resolver: zodResolver(PageSchema),
@@ -133,11 +113,6 @@ export const usePageForm = ({
   const onSubmit = useCallback(
     async (data: PageSchemaType) => {
       setStatus("saving");
-      const loadingId = toastManager.add({
-        title: "저장 중…",
-        type: "loading",
-        timeout: 0,
-      });
 
       try {
         let resolvedImageUrl = data.imageUrl ?? pageImageUrl ?? "";
@@ -145,47 +120,41 @@ export const usePageForm = ({
           resolvedImageUrl = await uploadImage(data.image, data.handle);
         }
 
-        const result = await requestUpdatePage({
-          pageId: data.pageId,
-          handle: data.handle,
-          ownerId: data.ownerId,
-          title: data.title,
-          description: data.description ?? "",
-          imageUrl: resolvedImageUrl,
-          image: undefined,
-        });
+        const result = await updatePageMutation.mutateAsync(
+          {
+            pageId: data.pageId,
+            handle: data.handle,
+            ownerId: data.ownerId,
+            title: data.title,
+            description: data.description ?? "",
+            imageUrl: resolvedImageUrl,
+          },
+          {
+            onSuccess: () => {
+              setStatus("saved");
+              wasDirtyRef.current = false;
+            },
+            onError: () => {
+              setStatus("error");
+            },
+          }
+        );
 
-        if (result.status === "error") {
-          throw new Error(result.reason ?? result.message);
+        if (!result.ok) {
+          throw new Error(result.reason);
         }
-
-        toastManager.update(loadingId, {
-          title: result.message ?? "저장 완료",
-          type: "success",
-        });
 
         form.reset({
           ...data,
           image: undefined,
           imageUrl: resolvedImageUrl,
         });
-        setStatus("saved");
-        wasDirtyRef.current = false;
       } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "잠시 후 다시 시도해 주세요.";
-
-        toastManager.update(loadingId, {
-          title: "저장 실패",
-          description: message,
-          type: "error",
-        });
         setStatus("error");
+        throw error;
       }
     },
-    [form, pageImageUrl, setStatus]
+    [form, pageImageUrl]
   );
 
   useEffect(() => {
