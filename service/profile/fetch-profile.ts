@@ -1,6 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
 import type { ProfileBffPayload } from "@/types/profile";
-import { getBaseUrl } from "@/lib/base-url";
 
 export type FetchProfileParams = {
   handle: string;
@@ -17,8 +16,7 @@ export const fetchProfileFromBff = async (
 ): Promise<ProfileBffPayload | null> => {
   const { handle, headers } = params;
   const encodedHandle = encodeURIComponent(handle);
-  const baseUrl = getBaseUrl();
-  const targetUrl = `${baseUrl}/api/profile/${encodedHandle}`;
+  const targetUrl = `/api/profile/${encodedHandle}`;
 
   try {
     return await Sentry.startSpan(
