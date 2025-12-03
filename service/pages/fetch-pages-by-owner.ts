@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
 import type { Tables } from "@/types/database.types";
+import { getBaseUrl } from "@/lib/base-url";
 
 export type OwnerPages = Array<
   Pick<Tables<"pages">, "id" | "handle" | "title" | "ordering">
@@ -24,7 +25,7 @@ export const fetchPagesByOwnerId = async (
       async (span) => {
         span.setAttribute("owner.id", ownerId);
 
-        const baseUrl = (process.env.URL ?? "").replace(/\/$/, "");
+        const baseUrl = getBaseUrl();
         const targetUrl = baseUrl
           ? `${baseUrl}/api/profile/pages?ownerId=${ownerId}`
           : `/api/profile/pages?ownerId=${ownerId}`;
