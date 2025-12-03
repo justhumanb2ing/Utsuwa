@@ -14,7 +14,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const headerStore = await headers();
   const decodedHandle = decodeURIComponent(handle);
 
-  const fetchParams = { handle: decodedHandle, headers: headerStore };
+  const fetchParams = {
+    handle: decodedHandle,
+    headers: {
+      cookie: headerStore.get("cookie") ?? "",
+    },
+  };
 
   const { data, dehydrated } = await prefetchProfileByHandle(fetchParams);
 
