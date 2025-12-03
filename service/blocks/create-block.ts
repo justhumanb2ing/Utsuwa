@@ -1,9 +1,12 @@
 import * as Sentry from "@sentry/nextjs";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BlockType } from "@/config/block-registry";
 import type { BlockWithDetails } from "@/types/block";
 import type { PageHandle, PageId } from "@/types/profile";
 
 export type CreateBlockParams = {
+  supabase: SupabaseClient;
+  userId: string | null;
   pageId: PageId;
   handle: PageHandle;
   type: BlockType;
@@ -34,34 +37,52 @@ const resolveErrorMessage = (body: BlockApiResponse): string =>
 export const requestCreateBlock = async (
   params: CreateBlockParams
 ): Promise<CreateBlockResult> => {
-  const { pageId, handle, type, data } = params;
+  const { supabase, userId, pageId, handle, type, data } = params;
+
+  if (!userId) {
+    return { status: "error", message: "로그인이 필요합니다." };
+  }
 
   try {
     return await Sentry.startSpan(
-      { op: "http.client", name: "Create profile block" },
+      { op: "db.mutation", name: "Create profile block" },
       async (span) => {
         span.setAttribute("block.type", type);
         span.setAttribute("page.id", pageId);
         span.setAttribute("page.handle", handle);
 
-        const response = await fetch("/api/profile/block", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pageId, handle, type, data }),
-        });
+        const { data: page, error: pageLookupError } = await supabase
+          .from("pages")
+          .select("id, owner_id")
+          .eq("id", pageId)
+          .maybeSingle();
 
-        const body = (await response.json().catch(() => ({}))) as BlockApiResponse;
-
-        if (!response.ok || body.status === "error") {
-          const message = resolveErrorMessage(body);
-          return { status: "error", message };
+        if (pageLookupError) {
+          throw pageLookupError;
         }
 
-        if (!body.block) {
+        if (!page) {
+          return { status: "error", message: "페이지를 찾을 수 없습니다." };
+        }
+
+        if (page.owner_id !== userId) {
+          return { status: "error", message: "블록을 생성할 권한이 없습니다." };
+        }
+
+        const { data: created, error: rpcError } = await supabase.rpc(
+          "create_block",
+          { p_page_id: pageId, p_type: type, p_data: data ?? null }
+        );
+
+        if (rpcError) {
+          throw rpcError;
+        }
+
+        if (!created) {
           return { status: "error", message: DEFAULT_ERROR_MESSAGE };
         }
 
-        return { status: "success", block: body.block };
+        return { status: "success", block: created as BlockWithDetails };
       }
     );
   } catch (error) {

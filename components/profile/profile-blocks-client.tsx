@@ -7,11 +7,13 @@ import { arrayMove } from "@dnd-kit/sortable";
 import type { BlockWithDetails } from "@/types/block";
 import type { BlockType } from "@/config/block-registry";
 import type { PageHandle, PageId, ProfileOwnership } from "@/types/profile";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { BlockRegistryPanel } from "@/components/layout/block-registry";
 import { PageBlocks } from "@/components/profile/page-blocks";
 import { toastManager } from "@/components/ui/toast";
 import { useSaveStatus } from "@/components/profile/save-status-context";
 import { blockQueryOptions } from "@/service/blocks/block-query-options";
+import { BlockEnvProvider } from "@/hooks/use-block-env";
 
 type BlockItem =
   | { kind: "persisted"; block: BlockWithDetails }
@@ -31,6 +33,8 @@ type ProfileBlocksClientProps = ProfileOwnership & {
   initialBlocks: BlockWithDetails[];
   handle: PageHandle;
   pageId: PageId;
+  supabase: SupabaseClient;
+  userId: string | null;
 };
 
 export const ProfileBlocksClient = ({
@@ -38,6 +42,8 @@ export const ProfileBlocksClient = ({
   handle,
   pageId,
   isOwner,
+  supabase,
+  userId,
 }: ProfileBlocksClientProps) => {
   const [items, setItems] = useState<BlockItem[]>(
     initialBlocks.map((block) => ({ kind: "persisted", block }))
@@ -48,13 +54,13 @@ export const ProfileBlocksClient = ({
   const queryClient = useQueryClient();
   const { setStatus } = useSaveStatus();
   const createBlockMutation = useMutation(
-    blockQueryOptions.create({ pageId, handle, queryClient })
+    blockQueryOptions.create({ pageId, handle, queryClient, supabase, userId })
   );
   const deleteBlockMutation = useMutation(
-    blockQueryOptions.delete({ handle, queryClient })
+    blockQueryOptions.delete({ handle, queryClient, supabase, userId })
   );
   const reorderBlocksMutation = useMutation(
-    blockQueryOptions.reorder({ pageId, handle, queryClient })
+    blockQueryOptions.reorder({ pageId, handle, queryClient, supabase, userId })
   );
   const isReordering = reorderBlocksMutation.isPending;
 
@@ -267,21 +273,23 @@ export const ProfileBlocksClient = ({
   const visibleItems = useMemo(() => items, [items]);
 
   return (
-    <div className="space-y-3 flex flex-col items-center">
-      {isOwner ? (
-        <BlockRegistryPanel onSelectBlock={handleAddPlaceholder} />
-      ) : null}
-      <PageBlocks
-        items={visibleItems}
-        handle={handle}
-        isOwner={isOwner}
-        onSavePlaceholder={handleSavePlaceholder}
-        onCancelPlaceholder={handleCancelPlaceholder}
-        onDeleteBlock={handleDeleteBlock}
-        deletingBlockIds={deletingBlockIds}
-        onReorder={handleReorderBlocks}
-        disableReorder={isReordering}
-      />
-    </div>
+    <BlockEnvProvider value={{ supabase, userId }}>
+      <div className="space-y-3 flex flex-col items-center">
+        {isOwner ? (
+          <BlockRegistryPanel onSelectBlock={handleAddPlaceholder} />
+        ) : null}
+        <PageBlocks
+          items={visibleItems}
+          handle={handle}
+          isOwner={isOwner}
+          onSavePlaceholder={handleSavePlaceholder}
+          onCancelPlaceholder={handleCancelPlaceholder}
+          onDeleteBlock={handleDeleteBlock}
+          deletingBlockIds={deletingBlockIds}
+          onReorder={handleReorderBlocks}
+          disableReorder={isReordering}
+        />
+      </div>
+    </BlockEnvProvider>
   );
 };

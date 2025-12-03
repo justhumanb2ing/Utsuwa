@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { BlockWithDetails } from "@/types/block";
 import type { PageHandle, PageId } from "@/types/profile";
 
@@ -8,6 +9,8 @@ export type ReorderBlockPayload = {
 };
 
 export type ReorderBlocksParams = {
+  supabase: SupabaseClient;
+  userId: string | null;
   pageId: PageId;
   handle: PageHandle;
   blocks: ReorderBlockPayload[];
@@ -27,32 +30,40 @@ const DEFAULT_ERROR_MESSAGE = "블록 순서를 변경하지 못했습니다.";
 export const requestReorderBlocks = async (
   params: ReorderBlocksParams
 ): Promise<ReorderBlocksResult> => {
-  const { pageId, handle, blocks } = params;
+  const { supabase, userId, pageId, handle, blocks } = params;
+
+  if (!userId) {
+    return { status: "error", message: "로그인이 필요합니다." };
+  }
 
   try {
     return await Sentry.startSpan(
-      { op: "http.client", name: "Reorder profile blocks" },
+      { op: "db.mutation", name: "Reorder profile blocks" },
       async (span) => {
         span.setAttribute("page.id", pageId);
         span.setAttribute("block.count", blocks.length);
 
-        const response = await fetch("/api/profile/block", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pageId, handle, blocks }),
-        });
+        const { data: page, error: pageLookupError } = await supabase
+          .from("pages")
+          .select("id, handle, owner_id")
+          .eq("id", pageId)
+          .maybeSingle();
 
-        const body = (await response.json().catch(() => ({}))) as {
-          status?: "success" | "error";
-          reason?: string;
-          message?: string;
-        };
-
-        if (!response.ok || body.status === "error") {
-          const message =
-            body.message ?? body.reason ?? DEFAULT_ERROR_MESSAGE;
-          return { status: "error", message };
+        if (pageLookupError) throw pageLookupError;
+        if (!page) {
+          return { status: "error", message: "페이지를 찾을 수 없습니다." };
         }
+
+        if (page.owner_id !== userId) {
+          return { status: "error", message: "블록을 수정할 권한이 없습니다." };
+        }
+
+        const { error: rpcError } = await supabase.rpc(
+          "reorder_blocks_after_dnd",
+          { p_page_id: pageId, p_blocks: blocks }
+        );
+
+        if (rpcError) throw rpcError;
 
         return { status: "success" };
       }

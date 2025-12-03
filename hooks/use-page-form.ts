@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useSaveStatus } from "@/components/profile/save-status-context";
 import { pageQueryOptions } from "@/service/pages/page-query-options";
 import { normalizeHandle } from "@/lib/handle";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const PageSchema = z.object({
   pageId: z.string(),
@@ -28,6 +29,8 @@ type UsePageFormParams = {
   pageTitle?: string;
   pageDescription?: string;
   pageImageUrl?: string;
+  supabase: SupabaseClient;
+  userId: string | null;
 };
 
 const uploadImage = async (file: File, handle: string): Promise<string> => {
@@ -60,6 +63,8 @@ export const usePageForm = ({
   pageTitle,
   pageDescription,
   pageImageUrl,
+  supabase,
+  userId,
 }: UsePageFormParams) => {
   const { setStatus } = useSaveStatus();
   const queryClient = useQueryClient();
@@ -70,6 +75,8 @@ export const usePageForm = ({
       handle: normalizedHandle,
       ownerId,
       queryClient,
+      supabase,
+      userId,
     })
   );
   const wasDirtyRef = useRef<boolean>(false);

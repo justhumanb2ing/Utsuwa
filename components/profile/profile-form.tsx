@@ -14,6 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { usePageForm } from "@/hooks/use-page-form";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type ProfileFormProps = {
   pageId: string;
@@ -23,6 +24,8 @@ type ProfileFormProps = {
   pageTitle?: string;
   pageDescription?: string;
   pageImageUrl?: string;
+  supabase: SupabaseClient;
+  userId: string | null;
 };
 
 export function ProfileForm({
@@ -33,6 +36,8 @@ export function ProfileForm({
   pageTitle,
   pageDescription,
   pageImageUrl,
+  supabase,
+  userId,
 }: ProfileFormProps) {
   const fileInputId = useId();
   const { form, preview, onSubmit } = usePageForm({
@@ -43,6 +48,8 @@ export function ProfileForm({
     pageTitle,
     pageDescription,
     pageImageUrl,
+    supabase,
+    userId,
   });
 
   return (

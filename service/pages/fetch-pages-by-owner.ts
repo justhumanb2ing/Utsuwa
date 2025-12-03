@@ -1,49 +1,47 @@
 import * as Sentry from "@sentry/nextjs";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Tables } from "@/types/database.types";
-import { getBaseUrl } from "@/lib/base-url";
 
 export type OwnerPages = Array<
   Pick<Tables<"pages">, "id" | "handle" | "title" | "ordering">
 >;
 
 export type FetchPagesByOwnerParams = {
+  supabase: SupabaseClient;
   ownerId: string;
-  headers?: HeadersInit;
+  userId: string | null;
 };
 
 /**
  * 주어진 사용자 ID를 owner_id로 가진 pages 목록을 반환한다.
- * 오류는 Sentry에 기록하고, 호출 측에 영향을 주지 않도록 빈 배열을 리턴한다.
+ * - 호출자가 Supabase Client와 userId를 주입한다.
+ * - 권한 불일치 시 빈 배열 반환.
  */
 export const fetchPagesByOwnerId = async (
   params: FetchPagesByOwnerParams
 ): Promise<OwnerPages> => {
-  const { ownerId, headers } = params;
+  const { supabase, ownerId, userId } = params;
+
+  if (!userId || ownerId !== userId) {
+    return [];
+  }
+
   try {
     return await Sentry.startSpan(
-      { op: "http.client", name: "Fetch pages by owner" },
+      { op: "db.query", name: "Fetch pages by owner" },
       async (span) => {
         span.setAttribute("owner.id", ownerId);
 
-        const baseUrl = getBaseUrl();
-        const targetUrl = baseUrl
-          ? `${baseUrl}/api/profile/pages?ownerId=${ownerId}`
-          : `/api/profile/pages?ownerId=${ownerId}`;
+        const { data, error } = await supabase
+          .from("pages")
+          .select("id, handle, title, ordering")
+          .eq("owner_id", ownerId)
+          .order("ordering", { ascending: true, nullsFirst: false })
+          .order("created_at", { ascending: true });
 
-        const response = await fetch(targetUrl, { headers });
+        if (error) throw error;
 
-        const body = (await response.json()) as {
-          status?: "success" | "error";
-          pages?: OwnerPages;
-          message?: string;
-        };
-        
-        if (!response.ok || body.status === "error") {
-          const message = body.message ?? "페이지 목록을 불러오지 못했습니다.";
-          throw new Error(message);
-        }
-
-        return body.pages ?? [];
+        return (data ?? []) as OwnerPages;
       }
     );
   } catch (error) {

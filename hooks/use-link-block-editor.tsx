@@ -2,17 +2,21 @@ import { useState, useMemo } from "react";
 import { blockQueryOptions } from "@/service/blocks/block-query-options";
 import { useMutation } from "@tanstack/react-query";
 import { useDebouncedMutation } from "./use-debounced-mutation";
+import { useBlockEnv } from "./use-block-env";
 import type {
   LinkBlockEditorParams,
   LinkBlockState,
 } from "@/types/block-editor";
 
 export const useLinkBlockEditor = (params: LinkBlockEditorParams) => {
+  const { supabase, userId } = useBlockEnv();
   const [values, setValues] = useState<LinkBlockState>({
     url: params.data.url ?? "",
     title: params.data.title ?? "",
   });
-  const updateBlockMutation = useMutation(blockQueryOptions.updateContent());
+  const updateBlockMutation = useMutation(
+    blockQueryOptions.updateContent({ supabase, userId })
+  );
   
   const getValues = useMemo(
     () => () => ({

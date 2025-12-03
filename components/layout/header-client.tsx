@@ -7,23 +7,21 @@ import {
   SignedIn,
   SignedOut,
   UserButton,
+  useAuth,
 } from "@clerk/nextjs";
-import { Item } from "@/components/ui/item";
-import {
-  QueryErrorResetBoundary,
-} from "@tanstack/react-query";
-import { pageQueryOptions } from "@/service/pages/page-query-options";
+import { useMemo } from "react";
+import { QueryErrorResetBoundary } from "@tanstack/react-query";
 import { ErrorBoundary, Suspense } from "@suspensive/react";
 import { SuspenseQuery } from "@suspensive/react-query";
-
-type WithRequestHeaders = {
-  headers?: HeadersInit;
-};
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserSupabaseClient } from "@/config/supabase-browser";
+import { Item } from "@/components/ui/item";
+import { pageQueryOptions } from "@/service/pages/page-query-options";
 
 type HeaderClientProps = {
   userId: string | null;
   canLoadPages: boolean;
-} & WithRequestHeaders;
+};
 
 const normalizeHandle = (rawHandle: string): string =>
   rawHandle.trim().replace(/^@+/, "");
@@ -35,9 +33,14 @@ const buildProfilePath = (handle: string): string => {
 
 export default function HeaderClient({
   userId,
-  headers,
   canLoadPages,
 }: HeaderClientProps) {
+  const { getToken } = useAuth();
+  const supabase: SupabaseClient = useMemo(
+    () => createBrowserSupabaseClient(() => getToken()),
+    [getToken]
+  );
+
   return (
     <Item
       asChild
@@ -60,15 +63,15 @@ export default function HeaderClient({
                   <ErrorBoundary onReset={reset} fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading</div>}>
                       <SuspenseQuery
-                        {...pageQueryOptions.byOwner(userId, headers)}
-                        select={(pages) => {
-                          return pages.map((page) => {
+                        {...pageQueryOptions.byOwner(userId, supabase, userId)}
+                        select={(pages) =>
+                          pages.map((page) => {
                             const href = buildProfilePath(page.handle);
-                            const label = page.title?.trim() || page.handle;
+                            const label = page.handle
 
                             return { id: page.id, href, label };
-                          });
-                        }}
+                          })
+                        }
                       >
                         {({ data: pageLinks }) =>
                           pageLinks.map((page) => (

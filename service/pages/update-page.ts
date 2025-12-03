@@ -1,6 +1,10 @@
 import * as Sentry from "@sentry/nextjs";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { normalizeHandle } from "@/lib/handle";
 
 export type UpdatePageParams = {
+  supabase: SupabaseClient;
+  userId: string | null;
   pageId: string;
   ownerId: string;
   handle: string;
@@ -16,38 +20,64 @@ export type UpdatePageResult =
 export const updatePage = async (
   params: UpdatePageParams
 ): Promise<UpdatePageResult> => {
-  const { pageId, ownerId, handle, title, description, imageUrl } = params;
+  const {
+    supabase,
+    userId,
+    pageId,
+    ownerId,
+    handle,
+    title,
+    description,
+    imageUrl,
+  } = params;
+
+  if (!userId) {
+    return { ok: false, reason: "로그인이 필요합니다." };
+  }
+
+  if (userId !== ownerId) {
+    return { ok: false, reason: "권한이 없습니다." };
+  }
+
+  const normalizedHandle = normalizeHandle(handle);
 
   try {
     return await Sentry.startSpan(
-      { op: "http.client", name: "Update page" },
+      { op: "db.mutation", name: "Update page" },
       async (span) => {
         span.setAttribute("page.id", pageId);
-        span.setAttribute("page.handle", handle);
+        span.setAttribute("page.handle", normalizedHandle);
 
-        const response = await fetch("/api/profile/update", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pageId,
-            ownerId,
-            handle,
+        const { data: page, error: pageLookupError } = await supabase
+          .from("pages")
+          .select("id, owner_id")
+          .eq("id", pageId)
+          .maybeSingle();
+
+        if (pageLookupError) throw pageLookupError;
+        if (!page) {
+          return { ok: false, reason: "페이지를 찾을 수 없습니다." };
+        }
+
+        if (page.owner_id !== ownerId) {
+          return { ok: false, reason: "권한이 없습니다." };
+        }
+
+        const { error: updateError } = await supabase
+          .from("pages")
+          .update({
             title,
             description,
-            imageUrl,
-          }),
-        });
+            image_url: imageUrl,
+          })
+          .eq("id", pageId)
+          .eq("owner_id", ownerId);
 
-        const body = (await response.json().catch(() => ({}))) as {
-          status?: "success" | "error";
-          reason?: string;
-          message?: string;
-        };
-
-        if (!response.ok || body.status === "error") {
-          const reason =
-            body.reason ?? body.message ?? "페이지 업데이트에 실패했습니다.";
-          return { ok: false, reason };
+        if (updateError) {
+          if (updateError.code === "23505") {
+            return { ok: false, reason: "이미 사용 중인 핸들입니다." };
+          }
+          throw updateError;
         }
 
         return { ok: true };

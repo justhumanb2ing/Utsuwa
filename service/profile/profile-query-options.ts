@@ -1,9 +1,11 @@
 import { dehydrate, queryOptions } from "@tanstack/react-query";
 import { getQueryClient } from "@/lib/get-query-client";
-import { fetchProfileFromBff, type FetchProfileParams } from "./fetch-profile";
+import { fetchProfile, type FetchProfileParams } from "./fetch-profile";
 import type { ProfileBffPayload } from "@/types/profile";
 
 const profileQueryKey = ["profile"] as const;
+const handleKey = (handle: string) =>
+  [...profileQueryKey, "handle", handle] as const;
 
 /**
  * Profile 도메인의 쿼리 옵션 묶음.
@@ -11,10 +13,11 @@ const profileQueryKey = ["profile"] as const;
  */
 export const profileQueryOptions = {
   all: profileQueryKey,
+  byHandleKey: handleKey,
   byHandle: (params: FetchProfileParams) =>
     queryOptions({
-      queryKey: [...profileQueryKey, "bff", params.handle] as const,
-      queryFn: () => fetchProfileFromBff(params) as Promise<ProfileBffPayload>,
+      queryKey: handleKey(params.handle),
+      queryFn: () => fetchProfile(params) as Promise<ProfileBffPayload>,
     }),
 };
 

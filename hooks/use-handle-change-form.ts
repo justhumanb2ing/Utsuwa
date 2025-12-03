@@ -8,7 +8,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { pageQueryOptions } from "@/service/pages/page-query-options";
 import { useSaveStatus } from "@/components/profile/save-status-context";
-import { normalizeHandle, validateHandle } from "@/lib/handle";
+import {
+  normalizeHandle,
+  validateHandle,
+} from "@/lib/handle";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const HandleSchema = z.object({
   pageId: z.string(),
@@ -50,12 +54,16 @@ type UseHandleChangeFormParams = {
   pageId: string;
   ownerId: string;
   handle: string;
+  supabase: SupabaseClient;
+  userId: string | null;
 };
 
 export const useHandleChangeForm = ({
   pageId,
   ownerId,
   handle,
+  supabase,
+  userId,
 }: UseHandleChangeFormParams) => {
   const router = useRouter();
   const { setStatus } = useSaveStatus();
@@ -69,6 +77,8 @@ export const useHandleChangeForm = ({
       ownerId,
       handle: normalizedInitialHandle,
       queryClient,
+      supabase,
+      userId,
     })
   );
 
@@ -81,16 +91,19 @@ export const useHandleChangeForm = ({
     },
   });
 
+  // TODO: 핸들 변경 성공 후, URL 변경이 안되는 문제 수정 필요
   const onSubmit = useCallback(
     async (data: HandleSchemaType) => {
       setStatus("saving");
       try {
-        const result = await changeHandleMutation.mutateAsync({
-          pageId: data.pageId,
-          ownerId: data.ownerId,
-          currentHandle: currentHandleRef.current,
-          nextHandle: data.handle,
-        });
+        const result = await changeHandleMutation.mutateAsync(
+          {
+            pageId: data.pageId,
+            ownerId: data.ownerId,
+            currentHandle: currentHandleRef.current,
+            nextHandle: data.handle,
+          },
+        );
 
         if (!result.ok) {
           setStatus("error");
@@ -103,17 +116,19 @@ export const useHandleChangeForm = ({
           throw new Error(message);
         }
 
-        currentHandleRef.current = result.handle;
-        const nextPath = `/profile/${result.handle}`;
-        router.replace(nextPath);
-        router.refresh();
-
+        const normalizedNextHandle = normalizeHandle(data.handle);
+        currentHandleRef.current = normalizedNextHandle;
+        const nextPath = `/profile/@${normalizedNextHandle}`;
+  
         form.reset({
           pageId: data.pageId,
           ownerId: data.ownerId,
-          handle: result.handle,
+          handle: normalizedNextHandle,
         });
         setStatus("saved");
+
+        router.replace(nextPath);
+        router.refresh();
       } catch (error) {
         setStatus("error");
         throw error;

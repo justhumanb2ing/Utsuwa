@@ -1,69 +1,64 @@
 import * as Sentry from "@sentry/nextjs";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Tables } from "@/types/database.types";
 import type { ProfileBffPayload } from "@/types/profile";
+import { buildHandleCandidates } from "./build-handle-candidates";
+
+type PageRecord = Pick<
+  Tables<"pages">,
+  "id" | "handle" | "title" | "description" | "image_url" | "owner_id"
+>;
+
+type BlocksPayload = ProfileBffPayload["blocks"];
 
 export type FetchProfileParams = {
+  supabase: SupabaseClient;
   handle: string;
-  headers?: HeadersInit;
-};
-
-const buildBffUrl = (handle: string, headers?: HeadersInit): string => {
-  const encodedHandle = encodeURIComponent(handle);
-
-  // 브라우저에서는 상대경로로 호출해 동일 오리진 쿠키를 자연스럽게 포함한다.
-  if (typeof window !== "undefined") {
-    return `/api/profile/${encodedHandle}`;
-  }
-
-  const headerBag = new Headers(headers);
-  const forwardedHost =
-    headerBag.get("x-forwarded-host") ?? headerBag.get("host");
-  const forwardedProto =
-    headerBag.get("x-forwarded-proto") ??
-    (forwardedHost?.includes("localhost") ? "http" : "https");
-
-  if (forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}/api/profile/${encodedHandle}`;
-  }
-
-  // 요청 헤더가 없다면 환경 변수 기반으로 절대 경로를 구성한다.
-  const envBase =
-    process.env.NODE_ENV === "development"
-      ? "http://localhost:3000"
-      : process.env.NEXT_PUBLIC_VERCEL_URL
-        ? process.env.NEXT_PUBLIC_VERCEL_URL.startsWith("http")
-          ? process.env.NEXT_PUBLIC_VERCEL_URL
-          : `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-        : "";
-
-  return envBase ? `${envBase}/api/profile/${encodedHandle}` : `/api/profile/${encodedHandle}`;
+  userId: string | null;
 };
 
 /**
- * BFF(`/api/profile/[handle]`)를 호출해 페이지·블록 정보를 가져온다.
- * - 서버 컴포넌트에서 사용할 때는 `origin`과 `cookie`를 전달해 인증 헤더를 보존한다.
- * - 404는 null로 변환해 호출부에서 notFound 처리를 할 수 있게 한다.
+ * Supabase 기반 프로필 조회 (서버/클라이언트 공통)
+ * - Supabase Client와 userId를 DI로 주입해 인증/토큰 생성을 호출자에 위임한다.
+ * - 404는 null로 반환한다.
  */
-export const fetchProfileFromBff = async (
+export const fetchProfile = async (
   params: FetchProfileParams
 ): Promise<ProfileBffPayload | null> => {
-  const { handle, headers } = params;
-  const targetUrl = buildBffUrl(handle, headers);
+  const { supabase, handle, userId } = params;
+  const handleCandidates = buildHandleCandidates(handle);
+
+  if (handleCandidates.length === 0) throw new Error("Invalid handle");
 
   try {
     return await Sentry.startSpan(
-      { op: "http.client", name: "Fetch profile BFF" },
+      { op: "db.query", name: "Fetch profile" },
       async (span) => {
         span.setAttribute("profile.handle", handle);
-        span.setAttribute("request.url", targetUrl);
 
-        const response = await fetch(targetUrl, { headers });
+        const { data: page, error: pageError } = await supabase
+          .from("pages")
+          .select("id, handle, title, description, image_url, owner_id")
+          .in("handle", handleCandidates)
+          .order("ordering", { ascending: true, nullsFirst: true })
+          .order("created_at", { ascending: true })
+          .maybeSingle<PageRecord>();
 
-        if (!response.ok) {
-          if (response.status === 404) return null;
-          throw new Error(`Profile BFF fetch failed: ${response.status}`);
-        }
-        
-        return (await response.json()) as ProfileBffPayload;
+        if (pageError) throw pageError;
+        if (!page) return null;
+
+        const { data: blocks, error: blockError } = await supabase.rpc(
+          "get_blocks_with_details",
+          { p_page_id: page.id }
+        );
+
+        if (blockError) throw blockError;
+
+        return {
+          page,
+          isOwner: Boolean(userId && userId === page.owner_id),
+          blocks: (blocks ?? []) as BlocksPayload,
+        };
       }
     );
   } catch (error) {

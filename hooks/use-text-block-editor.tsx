@@ -2,16 +2,20 @@ import { blockQueryOptions } from "@/service/blocks/block-query-options";
 import { useMemo, useState } from "react";
 import { useDebouncedMutation } from "./use-debounced-mutation";
 import { useMutation } from "@tanstack/react-query";
+import { useBlockEnv } from "./use-block-env";
 import type {
   TextBlockEditorParams,
   TextBlockState,
 } from "@/types/block-editor";
 
 export const useTextBlockEditor = (params: TextBlockEditorParams) => {
+  const { supabase, userId } = useBlockEnv();
   const [values, setValues] = useState<TextBlockState>({
     content: params.data.content ?? "",
   });
-  const updateBlockMutation = useMutation(blockQueryOptions.updateContent());
+  const updateBlockMutation = useMutation(
+    blockQueryOptions.updateContent({ supabase, userId })
+  );
   const getValues = useMemo(
     () => () => ({ content: values.content.trim() }),
     [values.content]

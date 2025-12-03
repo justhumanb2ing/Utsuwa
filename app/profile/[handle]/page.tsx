@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
 import { prefetchProfileByHandle } from "@/service/profile/profile-query-options";
 import { HydrationBoundary } from "@tanstack/react-query";
+import { createServerSupabaseClient } from "@/config/supabase";
 
 import ProfilePageClient from "@/components/profile/profile-page-client";
 
@@ -11,14 +12,14 @@ type ProfilePageProps = {
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { handle } = await params;
-  const headerStore = await headers();
   const decodedHandle = decodeURIComponent(handle);
+  const supabase = await createServerSupabaseClient();
+  const { userId } = await auth();
 
   const fetchParams = {
+    supabase,
     handle: decodedHandle,
-    headers: {
-      cookie: headerStore.get("cookie") ?? "",
-    },
+    userId: userId ?? null,
   };
 
   const { data, dehydrated } = await prefetchProfileByHandle(fetchParams);
@@ -29,7 +30,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   return (
     <HydrationBoundary state={dehydrated}>
-      <ProfilePageClient fetchParams={fetchParams} />
+      <ProfilePageClient handle={decodedHandle} userId={userId ?? null} />
     </HydrationBoundary>
   );
 }

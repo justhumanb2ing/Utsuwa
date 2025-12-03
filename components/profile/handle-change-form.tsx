@@ -10,12 +10,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useHandleChangeForm } from "@/hooks/use-handle-change-form";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type HandleChangeFormProps = {
   pageId: string;
   ownerId: string;
   handle: string;
   isOwner: boolean;
+  supabase: SupabaseClient;
+  userId: string | null;
 };
 
 export const HandleChangeForm = ({
@@ -23,11 +26,15 @@ export const HandleChangeForm = ({
   ownerId,
   handle,
   isOwner,
+  supabase,
+  userId,
 }: HandleChangeFormProps) => {
   const { form, onSubmit, isPending } = useHandleChangeForm({
     pageId,
     ownerId,
     handle,
+    supabase,
+    userId,
   });
 
   if (!isOwner) return null;

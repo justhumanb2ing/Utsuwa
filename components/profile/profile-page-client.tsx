@@ -1,9 +1,13 @@
 "use client";
 
+import { useMemo } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { profileQueryOptions } from "@/service/profile/profile-query-options";
 import { QueryErrorResetBoundary } from "@tanstack/react-query";
 import { ErrorBoundary, Suspense } from "@suspensive/react";
 import { SuspenseQuery } from "@suspensive/react-query";
+import { createBrowserSupabaseClient } from "@/config/supabase-browser";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   SaveStatusProvider,
   StatusBadge,
@@ -12,8 +16,6 @@ import {
 import { ProfileForm } from "./profile-form";
 import { ProfileBlocksClient } from "./profile-blocks-client";
 import { HandleChangeForm } from "./handle-change-form";
-
-import type { FetchProfileParams } from "@/service/profile/fetch-profile";
 
 import { SettingDropdownMenu } from "./setting-dropdownmenu";
 
@@ -28,18 +30,34 @@ const StatusSection = () => {
   );
 };
 
+type ProfilePageClientProps = {
+  handle: string;
+  userId: string | null;
+};
+
 export default function ProfilePageClient({
-  fetchParams,
-}: {
-  fetchParams: FetchProfileParams;
-}) {
+  handle,
+  userId,
+}: ProfilePageClientProps) {
+  const { getToken } = useAuth();
+  const supabase: SupabaseClient = useMemo(
+    () => createBrowserSupabaseClient(getToken),
+    [getToken]
+  );
+
   return (
     <main className="min-h-dvh flex flex-col relative max-w-7xl mx-auto px-4">
       <QueryErrorResetBoundary>
         {({ reset }) => (
           <ErrorBoundary onReset={reset} fallback={<div>Error</div>}>
             <Suspense fallback={<div>Loading</div>}>
-              <SuspenseQuery {...profileQueryOptions.byHandle(fetchParams)}>
+              <SuspenseQuery
+                {...profileQueryOptions.byHandle({
+                  supabase,
+                  handle,
+                  userId,
+                })}
+              >
                 {({ data: { isOwner, page, blocks } }) => (
                   <SaveStatusProvider>
                     <main className="space-y-6 grow">
@@ -50,6 +68,8 @@ export default function ProfilePageClient({
                           ownerId={page.owner_id}
                           handle={page.handle}
                           isOwner={isOwner}
+                          supabase={supabase}
+                          userId={userId}
                         />
                       ) : null}
                       <ProfileForm
@@ -60,12 +80,16 @@ export default function ProfilePageClient({
                         pageTitle={page.title ?? undefined}
                         pageDescription={page.description ?? undefined}
                         pageImageUrl={page.image_url ?? undefined}
+                        supabase={supabase}
+                        userId={userId}
                       />
                       <ProfileBlocksClient
                         initialBlocks={blocks}
                         handle={page.handle}
                         pageId={page.id}
                         isOwner={isOwner}
+                        supabase={supabase}
+                        userId={userId}
                       />
                     </main>
                   </SaveStatusProvider>
