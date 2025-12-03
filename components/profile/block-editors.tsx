@@ -5,14 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useLinkBlockEditor } from "@/hooks/use-link-block-editor";
 import { useTextBlockEditor } from "@/hooks/use-text-block-editor";
+import type {
+  LinkBlockEditorParams,
+  TextBlockEditorParams,
+} from "@/types/block-editor";
 
-export type LinkBlockEditorProps = {
-  mode: "placeholder" | "persisted";
-  blockId?: string;
-  handle: string;
-  isOwner: boolean;
-  data: { url?: string | null; title?: string | null };
-  onSavePlaceholder?: (data: { url: string; title: string }) => Promise<void>;
+export type LinkBlockEditorProps = LinkBlockEditorParams & {
   onCancelPlaceholder?: () => void;
 };
 
@@ -63,13 +61,7 @@ export const LinkBlockEditor = ({
   );
 };
 
-export type TextBlockEditorProps = {
-  mode: "placeholder" | "persisted";
-  blockId?: string;
-  handle: string;
-  isOwner: boolean;
-  data: { content?: string | null };
-  onSavePlaceholder?: (data: { content: string }) => Promise<void>;
+export type TextBlockEditorProps = TextBlockEditorParams & {
   onCancelPlaceholder?: () => void;
 };
 

@@ -2,6 +2,7 @@ import { useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import deepEqual from "fast-deep-equal";
 import { useSaveStatus } from "@/components/profile/save-status-context";
+import type { BlockEditorMode } from "@/types/block-editor";
 
 type Params<T> = {
   initial: T;
@@ -9,6 +10,7 @@ type Params<T> = {
   save: (values: T) => Promise<void>;
   enabled: boolean;
   debounceMs?: number;
+  mode?: BlockEditorMode;
 };
 
 export const useDebouncedMutation = <T,>({

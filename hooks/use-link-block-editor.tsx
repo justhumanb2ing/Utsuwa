@@ -2,20 +2,13 @@ import { useState, useMemo } from "react";
 import { blockQueryOptions } from "@/service/blocks/block-query-options";
 import { useMutation } from "@tanstack/react-query";
 import { useDebouncedMutation } from "./use-debounced-mutation";
+import type {
+  LinkBlockEditorParams,
+  LinkBlockState,
+} from "@/types/block-editor";
 
-type LinkParams = {
-  blockId?: string;
-  handle: string;
-  mode: "placeholder" | "persisted";
-  isOwner: boolean;
-  data: { url?: string | null; title?: string | null };
-  onSavePlaceholder?: (data: { url: string; title: string }) => Promise<void>;
-};
-
-type LinkState = { url: string; title: string };
-
-export const useLinkBlockEditor = (params: LinkParams) => {
-  const [values, setValues] = useState<LinkState>({
+export const useLinkBlockEditor = (params: LinkBlockEditorParams) => {
+  const [values, setValues] = useState<LinkBlockState>({
     url: params.data.url ?? "",
     title: params.data.title ?? "",
   });
@@ -29,7 +22,7 @@ export const useLinkBlockEditor = (params: LinkParams) => {
     [values.url, values.title]
   );
 
-  const save = async (v: LinkState) => {
+  const save = async (v: LinkBlockState) => {
     if (params.mode === "placeholder" && params.onSavePlaceholder) {
       return params.onSavePlaceholder(v);
     }
@@ -45,11 +38,12 @@ export const useLinkBlockEditor = (params: LinkParams) => {
     }
   };
 
-  useDebouncedMutation<LinkState>({
+  useDebouncedMutation<LinkBlockState>({
     initial: getValues(),
     getValues,
     save,
     enabled: params.isOwner,
+    mode: params.mode,
   });
 
   return {
