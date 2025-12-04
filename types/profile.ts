@@ -6,7 +6,13 @@ export type PageHandle = Tables<"pages">["handle"];
 
 export type PagePayload = Pick<
   Tables<"pages">,
-  "id" | "handle" | "title" | "description" | "image_url" | "owner_id"
+  | "id"
+  | "handle"
+  | "title"
+  | "description"
+  | "image_url"
+  | "owner_id"
+  | "is_public"
 >;
 
 export type ProfileOwnership = { isOwner: boolean };

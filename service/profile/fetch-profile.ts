@@ -6,7 +6,13 @@ import { buildHandleCandidates } from "./build-handle-candidates";
 
 type PageRecord = Pick<
   Tables<"pages">,
-  "id" | "handle" | "title" | "description" | "image_url" | "owner_id"
+  | "id"
+  | "handle"
+  | "title"
+  | "description"
+  | "image_url"
+  | "owner_id"
+  | "is_public"
 >;
 
 type BlocksPayload = ProfileBffPayload["blocks"];
@@ -38,7 +44,9 @@ export const fetchProfile = async (
 
         const { data: page, error: pageError } = await supabase
           .from("pages")
-          .select("id, handle, title, description, image_url, owner_id")
+          .select(
+            "id, handle, title, description, image_url, owner_id, is_public"
+          )
           .in("handle", handleCandidates)
           .order("ordering", { ascending: true, nullsFirst: true })
           .order("created_at", { ascending: true })

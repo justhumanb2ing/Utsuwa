@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prefetchProfileByHandle } from "@/service/profile/profile-query-options";
 import { HydrationBoundary } from "@tanstack/react-query";
 import { createServerSupabaseClient } from "@/config/supabase";
+import { JsonLd } from "@/components/seo/json-ld";
 
 import ProfilePageClient from "@/components/profile/profile-page-client";
 
@@ -72,9 +73,40 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     notFound();
   }
 
+  const profileTitle = data.page.title ?? decodedHandle;
+  const profileDescription =
+    data.page.description ?? `${profileTitle}'s profile`;
+  const profileUrl = `${siteConfig.url}/profile/@${decodedHandle}`;
+
+  const profileJsonLd = data.page.is_public
+    ? {
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        name: profileTitle,
+        description: profileDescription,
+        url: profileUrl,
+        isPartOf: {
+          "@type": "WebSite",
+          name: siteConfig.title,
+          url: siteConfig.url,
+        },
+        mainEntity: {
+          "@type": "Person",
+          name: profileTitle,
+          alternateName: `@${decodedHandle}`,
+          description: profileDescription,
+          image: data.page.image_url ?? undefined,
+          url: profileUrl,
+        },
+      }
+    : null;
+
   return (
-    <HydrationBoundary state={dehydrated}>
-      <ProfilePageClient handle={decodedHandle} userId={userId ?? null} />
-    </HydrationBoundary>
+    <>
+      {profileJsonLd ? <JsonLd data={profileJsonLd} /> : null}
+      <HydrationBoundary state={dehydrated}>
+        <ProfilePageClient handle={decodedHandle} userId={userId ?? null} />
+      </HydrationBoundary>
+    </>
   );
 }
