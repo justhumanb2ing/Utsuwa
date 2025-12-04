@@ -20,9 +20,9 @@ export default function OnboardingComponent() {
       // user.reload() 후 클라이언트의 publicMetadata가 업데이트되면
       // header-client.tsx에서 자동으로 쿼리가 실행됩니다.
       // 별도의 무효화나 재조회가 필요 없습니다.
-      
+
       // 홈으로 이동
-      router.push("/");
+      router.push(`/profile/@${res.handle}`);
     }
     if (res?.error) {
       setError(res?.error);
