@@ -1,12 +1,9 @@
 import { MetadataRoute } from "next";
+import { createClient } from "@supabase/supabase-js";
 import { siteConfig } from "@/config/metadata-config";
-import { createServerSupabaseClient } from "@/config/supabase";
 import type { Tables } from "@/types/database.types";
 
-type PublicPageRecord = Pick<
-  Tables<"pages">,
-  "handle" | "created_at" | "is_public"
->;
+type PublicPageRecord = Pick<Tables<"pages">, "handle" | "created_at" | "is_public">;
 
 const formatDate = (value?: string | null): string => {
   if (!value) return new Date().toISOString().split("T")[0];
@@ -23,10 +20,14 @@ const buildUrl = (path: string): string | null => {
 };
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = await createServerSupabaseClient();
+  // sitemap은 정적 생성 대상이므로 인증이 불필요한 익명 Supabase 클라이언트를 사용한다.
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
   const { data } = await supabase
     .from("pages")
-    .select("handle, updated_at, created_at, is_public")
+    .select("handle, created_at, is_public")
     .eq("is_public", true)
     .not("handle", "is", null);
 
