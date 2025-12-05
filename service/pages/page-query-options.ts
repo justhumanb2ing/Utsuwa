@@ -15,9 +15,14 @@ import {
   changePageHandle,
   type ChangeHandleParams,
 } from "./change-handle";
+import {
+  togglePageVisibility,
+  type TogglePageVisibilityResult,
+} from "./toggle-page-visibility";
 import { profileQueryOptions } from "../profile/profile-query-options";
 import { normalizeHandle } from "@/lib/handle";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ProfileBffPayload } from "@/types/profile";
 
 const pageQueryKey = ["page"] as const;
 
@@ -39,6 +44,15 @@ type ChangeHandleOptions = {
   pageId?: string;
   handle?: string;
   ownerId?: string;
+  queryClient?: QueryClient;
+};
+
+type ToggleVisibilityOptions = {
+  supabase: SupabaseClient;
+  userId: string | null;
+  pageId: string;
+  handle: string;
+  ownerId: string;
   queryClient?: QueryClient;
 };
 
@@ -217,7 +231,6 @@ export const pageQueryOptions = {
         }
 
         invalidateProfileByHandleVariants(context?.currentHandle, queryClient);
-        // invalidateProfileByHandleVariants(context?.nextHandle, queryClient);
       },
       onSettled: async (_data, _error, variables, context) => {
         const queryClient = resolveQueryClient(options.queryClient);
@@ -237,10 +250,77 @@ export const pageQueryOptions = {
           context?.currentHandle ?? options.handle,
           queryClient
         );
-        // invalidateProfileByHandleVariants(
-        //   variables.nextHandle ?? context?.nextHandle ?? options.handle,
-        //   queryClient
-        // );
+      },
+    }),
+  toggleVisibility: (options: ToggleVisibilityOptions) =>
+    mutationOptions<
+      TogglePageVisibilityResult,
+      Error,
+      void,
+      { previousProfile?: ProfileBffPayload | null }
+    >({
+      mutationKey: [
+        ...pageQueryKey,
+        "toggle-visibility",
+        options.pageId,
+      ] as const,
+      mutationFn: () =>
+        togglePageVisibility({
+          supabase: options.supabase,
+          userId: options.userId,
+          pageId: options.pageId,
+          ownerId: options.ownerId,
+        }),
+      onMutate: async () => {
+        const queryClient = resolveQueryClient(options.queryClient);
+
+        await queryClient.cancelQueries({
+          queryKey: profileQueryOptions.byHandleKey(options.handle),
+        });
+
+        const previousProfile = queryClient.getQueryData<ProfileBffPayload>(
+          profileQueryOptions.byHandleKey(options.handle)
+        );
+
+        if (previousProfile) {
+          const nextIsPublic = !Boolean(previousProfile.page.is_public);
+
+          queryClient.setQueryData<ProfileBffPayload>(
+            profileQueryOptions.byHandleKey(options.handle),
+            {
+              ...previousProfile,
+              page: {
+                ...previousProfile.page,
+                is_public: nextIsPublic,
+              },
+            }
+          );
+        }
+
+        return { previousProfile };
+      },
+      onError: (_error, _variables, context) => {
+        const queryClient = resolveQueryClient(options.queryClient);
+
+        if (context?.previousProfile) {
+          queryClient.setQueryData(
+            profileQueryOptions.byHandleKey(options.handle),
+            context.previousProfile
+          );
+        }
+      },
+      onSettled: async () => {
+        const queryClient = resolveQueryClient(options.queryClient);
+
+        invalidateProfileByHandleVariants(options.handle, queryClient);
+
+        void queryClient.invalidateQueries({
+          queryKey: pageQueryOptions.byOwner(
+            options.ownerId,
+            options.supabase,
+            options.userId
+          ).queryKey,
+        });
       },
     }),
 };

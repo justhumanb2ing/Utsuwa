@@ -16,6 +16,7 @@ import {
 import { ProfileForm } from "./profile-form";
 import { ProfileBlocksClient } from "./profile-blocks-client";
 import { HandleChangeForm } from "./handle-change-form";
+import { PageVisibilityToggle } from "./page-visibility-toggle";
 
 import { SettingDropdownMenu } from "./setting-dropdownmenu";
 
@@ -67,6 +68,17 @@ export default function ProfilePageClient({
                           pageId={page.id}
                           ownerId={page.owner_id}
                           handle={page.handle}
+                          isOwner={isOwner}
+                          supabase={supabase}
+                          userId={userId}
+                        />
+                      ) : null}
+                      {isOwner ? (
+                        <PageVisibilityToggle
+                          pageId={page.id}
+                          ownerId={page.owner_id}
+                          handle={page.handle}
+                          isPublic={page.is_public}
                           isOwner={isOwner}
                           supabase={supabase}
                           userId={userId}

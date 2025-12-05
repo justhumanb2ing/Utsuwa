@@ -297,6 +297,30 @@ export type Database = {
       }
       get_block_types: { Args: never; Returns: string[] }
       get_blocks_with_details: { Args: { p_page_id: string }; Returns: Json }
+      reorder_blocks_after_dnd: {
+        Args: { p_blocks: Json; p_page_id: string }
+        Returns: undefined
+      }
+      toggle_page_visibility: {
+        Args: { p_page_id: string }
+        Returns: {
+          created_at: string | null
+          description: string | null
+          handle: string
+          id: string
+          image_url: string | null
+          is_public: boolean | null
+          ordering: number | null
+          owner_id: string
+          title: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       block_type:
