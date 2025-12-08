@@ -6,7 +6,6 @@ import { GA_MEASUREMENT_ID, hasGaMeasurementId } from "@/lib/analytics";
 import { ClerkProvider } from "@clerk/nextjs";
 
 import "./globals.css";
-import Header from "@/components/layout/header";
 
 import Providers from "./providers";
 import { metadataConfig } from "@/config/metadata-config";
@@ -56,13 +55,7 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <Providers>
-            <nav className="relative h-16 w-full mx-auto z-10">
-              <Header />
-            </nav>
-
-            {children}
-          </Providers>
+          <Providers>{children}</Providers>
           {hasGaMeasurementId ? (
             <>
               <GoogleAnalytics gaId={GA_MEASUREMENT_ID} />

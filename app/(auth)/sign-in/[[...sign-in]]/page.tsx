@@ -1,7 +1,7 @@
-import { SignIn } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/seo/json-ld";
 import { siteConfig } from "@/config/metadata-config";
+import SignInSection from "@/components/auth/sign-in-section";
 
 const SIGN_IN_TITLE = "Sign in";
 const SIGN_IN_DESCRIPTION =
@@ -52,9 +52,9 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-16">
+    <div>
       <JsonLd data={jsonLd} />
-      <SignIn path="/sign-in" routing="path" signUpUrl="/sign-up" />
+      <SignInSection />
     </div>
   );
 }
