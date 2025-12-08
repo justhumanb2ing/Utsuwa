@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { siteConfig } from "@/config/metadata-config";
-import OnboardingSection from "@/components/onboarding/onboarding-section";
+import OnboardingSection from "@/components/auth/onboarding-section";
 
 export const metadata: Metadata = {
   title: "Onboarding",

@@ -9,6 +9,7 @@ import { Input } from "../ui/input";
 import { siteConfig } from "@/config/metadata-config";
 import { Button } from "../ui/button";
 import { LoaderIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function OnboardingSection() {
   const [error, setError] = useState("");
@@ -39,31 +40,11 @@ export default function OnboardingSection() {
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="text-center">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 40 40"
-          className="mx-auto size-10"
-        >
-          <mask
-            id="a"
-            width="40"
-            height="40"
-            x="0"
-            y="0"
-            maskUnits="userSpaceOnUse"
-          >
-            <circle cx="20" cy="20" r="20" fill="#D9D9D9" />
-          </mask>
-          <g fill="#0A0A0A" mask="url(#a)">
-            <path d="M43.5 3a.5.5 0 0 0 0-1v1Zm0-1h-46v1h46V2ZM43.5 8a.5.5 0 0 0 0-1v1Zm0-1h-46v1h46V7ZM43.5 13a.5.5 0 0 0 0-1v1Zm0-1h-46v1h46v-1ZM43.5 18a.5.5 0 0 0 0-1v1Zm0-1h-46v1h46v-1ZM43.5 23a.5.5 0 0 0 0-1v1Zm0-1h-46v1h46v-1ZM43.5 28a.5.5 0 0 0 0-1v1Zm0-1h-46v1h46v-1ZM43.5 33a.5.5 0 0 0 0-1v1Zm0-1h-46v1h46v-1ZM43.5 38a.5.5 0 0 0 0-1v1Zm0-1h-46v1h46v-1Z" />
-            <path d="M27 3.5a1 1 0 1 0 0-2v2Zm0-2h-46v2h46v-2ZM25 8.5a1 1 0 1 0 0-2v2Zm0-2h-46v2h46v-2ZM23 13.5a1 1 0 1 0 0-2v2Zm0-2h-46v2h46v-2ZM21.5 18.5a1 1 0 1 0 0-2v2Zm0-2h-46v2h46v-2ZM20.5 23.5a1 1 0 1 0 0-2v2Zm0-2h-46v2h46v-2ZM22.5 28.5a1 1 0 1 0 0-2v2Zm0-2h-46v2h46v-2ZM25 33.5a1 1 0 1 0 0-2v2Zm0-2h-46v2h46v-2ZM27 38.5a1 1 0 1 0 0-2v2Zm0-2h-46v2h46v-2Z" />
-          </g>
-        </svg>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-neutral-950">
-          Welcome!
+      <header className="text-left space-y-2">
+        <h1 className="mt-4 text-3xl font-bold tracking-tight">
+          Claim your unique handle!
         </h1>
+        <h2 className="text-neutral-500">This will become your public link</h2>
       </header>
       <form action={handleSubmit}>
         <div className="*:not-first:mt-2">
@@ -79,7 +60,14 @@ export default function OnboardingSection() {
               type="text"
               required
               autoComplete="off"
-              className="peer ps-44 border-none bg-muted"
+              className={cn(
+                "peer ps-44 border-none",
+                "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                "bg-muted shadow-none h-12 rounded-xl",
+                "data-invalid:border-destructive data-invalid:text-destructive"
+              )}
             />
             <span className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-muted-foreground text-sm peer-disabled:opacity-50">
               {siteConfig.url.slice(8)}/@
@@ -87,11 +75,16 @@ export default function OnboardingSection() {
           </div>
           {error && <p className="text-red-600">{error}</p>}
         </div>
-        <Button type="submit" className="mt-4 w-full" disabled={loading}>
+        <Button
+          type="submit"
+          className="mt-4 w-full rounded-xl"
+          size={"lg"}
+          disabled={loading}
+        >
           {loading ? (
             <LoaderIcon className="size-4 animate-spin" />
           ) : (
-            <span>Grab Handle</span>
+            <span>Grab it!</span>
           )}
         </Button>
       </form>

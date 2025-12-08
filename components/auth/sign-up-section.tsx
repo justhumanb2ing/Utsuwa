@@ -14,7 +14,7 @@ export default function SignUpSection() {
           <>
             <SignUp.Step
               name="start"
-              className="w-full space-y-6 rounded-2xl px-4 py-10 sm:w-96 sm:px-8"
+              className="w-full space-y-4 rounded-2xl px-4 py-10 sm:w-96 sm:px-8"
             >
               <header className="text-center">
                 <svg
@@ -49,13 +49,19 @@ export default function SignUpSection() {
                 name="username"
                 className="text-sm flex flex-col gap-2"
               >
-                <Clerk.Label>Username</Clerk.Label>
+                <Clerk.Label className="sr-only">Username</Clerk.Label>
                 <Clerk.Input
                   type="text"
                   required
                   placeholder="Username"
                   autoComplete="off"
-                  className="w-full border-b border-neutral-200 bg-white pb-2 text-sm/6 text-neutral-950 outline-none placeholder:text-neutral-400 hover:border-neutral-300 focus:border-neutral-600 data-invalid:border-red-600 data-invalid:text-red-600"
+                  className={cn(
+                    "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                    "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                    "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                    "bg-muted shadow-none h-12 rounded-xl",
+                    "data-invalid:border-destructive data-invalid:text-destructive"
+                  )}
                 />
                 <Clerk.FieldError className="mt-2 block text-xs text-red-600" />
               </Clerk.Field>
@@ -64,13 +70,19 @@ export default function SignUpSection() {
                 name="emailAddress"
                 className="text-sm flex flex-col gap-2"
               >
-                <Clerk.Label>Email</Clerk.Label>
+                <Clerk.Label className="sr-only">Email</Clerk.Label>
                 <Clerk.Input
                   type="email"
                   required
                   placeholder="Email"
                   autoComplete="off"
-                  className="w-full border-b border-neutral-200 bg-white pb-2 text-sm/6 text-neutral-950 outline-none placeholder:text-neutral-400 hover:border-neutral-300 focus:border-neutral-600 data-invalid:border-red-600 data-invalid:text-red-600"
+                  className={cn(
+                    "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                    "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                    "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                    "bg-muted shadow-none h-12 rounded-xl",
+                    "data-invalid:border-destructive data-invalid:text-destructive"
+                  )}
                 />
                 <Clerk.FieldError className="mt-2 block text-xs text-red-600" />
               </Clerk.Field>
@@ -79,21 +91,31 @@ export default function SignUpSection() {
                 name="password"
                 className="text-sm flex flex-col gap-2"
               >
-                <Clerk.Label>Password</Clerk.Label>
+                <Clerk.Label className="sr-only">Password</Clerk.Label>
                 <Clerk.Input
                   type="password"
                   required
                   placeholder="Password"
                   autoComplete="off"
-                  className="w-full border-b border-neutral-200 bg-white pb-2 text-sm/6 text-neutral-950 outline-none placeholder:text-neutral-400 hover:border-neutral-300 focus:border-neutral-600 data-invalid:border-red-600 data-invalid:text-red-600"
+                  className={cn(
+                    "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                    "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                    "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                    "bg-muted shadow-none h-12 rounded-xl",
+                    "data-invalid:border-destructive data-invalid:text-destructive"
+                  )}
                 />
                 <Clerk.FieldError className="mt-2 block text-xs text-red-600" />
               </Clerk.Field>
 
               <SignUp.Captcha className="empty:hidden" />
 
-              <SignUp.Action submit asChild className="w-full">
-                <Button disabled={isGlobalLoading}>
+              <SignUp.Action submit asChild>
+                <Button
+                  disabled={isGlobalLoading}
+                  className="w-full rounded-xl"
+                  size={"lg"}
+                >
                   <Clerk.Loading>
                     {(isLoading) => {
                       return isLoading ? (
@@ -120,7 +142,7 @@ export default function SignUpSection() {
                     type="button"
                     variant={"outline"}
                     size={"icon-lg"}
-                    className="w-full shadow-none"
+                    className="w-full shadow-none rounded-xl h-12"
                     disabled={isGlobalLoading}
                   >
                     <Clerk.Loading scope="provider:google">
@@ -156,7 +178,12 @@ export default function SignUpSection() {
                 </Clerk.Connection>
               </div>
 
-              <Button variant="link" size="sm" asChild className="w-full">
+              <Button
+                variant="link"
+                size="sm"
+                asChild
+                className="w-full text-neutral-700"
+              >
                 <Clerk.Link navigate="sign-in">
                   Already have an account? Sign in
                 </Clerk.Link>
@@ -165,29 +192,39 @@ export default function SignUpSection() {
 
             <SignUp.Step
               name="continue"
-              className="w-full space-y-6 rounded-2xl px-4 py-10 sm:w-96 sm:px-8"
+              className="w-full space-y-2 rounded-2xl px-4 py-10 sm:w-96 sm:px-8"
             >
-              <h1 className="mt-4 text-xl font-medium tracking-tight text-neutral-950">
-                Continue registration
+              <h1 className="my-8 text-xl font-medium tracking-tight text-neutral-950">
+                Complete your profile.
               </h1>
 
               <Clerk.Field
                 name="username"
                 className="text-sm flex flex-col gap-2"
               >
-                <Clerk.Label>Username</Clerk.Label>
+                <Clerk.Label className="sr-only">Username</Clerk.Label>
                 <Clerk.Input
                   type="text"
                   required
                   placeholder="Username"
                   autoComplete="off"
-                  className="w-full border-b border-neutral-200 bg-white pb-2 text-sm/6 text-neutral-950 outline-none placeholder:text-neutral-400 hover:border-neutral-300 focus:border-neutral-600 data-invalid:border-red-600 data-invalid:text-red-600"
+                  className={cn(
+                    "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                    "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                    "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                    "bg-muted shadow-none h-12 rounded-xl",
+                    "data-invalid:border-destructive data-invalid:text-destructive"
+                  )}
                 />
                 <Clerk.FieldError className="mt-2 block text-xs text-red-600" />
               </Clerk.Field>
 
               <SignUp.Action submit asChild>
-                <Button disabled={isGlobalLoading} className="w-full">
+                <Button
+                  disabled={isGlobalLoading}
+                  className="w-full rounded-xl"
+                  size={"lg"}
+                >
                   <Clerk.Loading>
                     {(isLoading) => {
                       return isLoading ? (
@@ -290,7 +327,11 @@ export default function SignUpSection() {
 
                 <div className="grid w-full gap-y-4">
                   <SignUp.Action submit asChild>
-                    <Button disabled={isGlobalLoading} className="w-full">
+                    <Button
+                      disabled={isGlobalLoading}
+                      className="w-full rounded-xl"
+                      size={"lg"}
+                    >
                       <Clerk.Loading>
                         {(isLoading) => {
                           return isLoading ? (

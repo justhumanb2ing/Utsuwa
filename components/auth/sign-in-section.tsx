@@ -15,9 +15,9 @@ export default function SignInSection() {
             <>
               <SignIn.Step
                 name="start"
-                className="w-full space-y-6 rounded-2xl px-4 py-10 sm:w-96 sm:px-8"
+                className="w-full space-y-4 rounded-2xl px-4 py-10 sm:w-96 sm:px-8"
               >
-                <header className="text-center">
+                <header className="text-center mb-6">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -49,15 +49,25 @@ export default function SignInSection() {
                   <Clerk.Input
                     type="email"
                     required
-                    placeholder="Email"
+                    placeholder="your-email@email.com"
                     autoComplete="off"
-                    className="w-full border-b border-neutral-200 bg-white pb-2 text-sm/6 text-neutral-950 outline-none placeholder:text-neutral-400 hover:border-neutral-300 focus:border-neutral-600 data-invalid:border-red-600 data-invalid:text-red-600"
+                    className={cn(
+                      "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                      "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                      "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+                      "bg-muted shadow-none h-12 rounded-xl",
+                      "data-invalid:border-destructive data-invalid:text-destructive"
+                    )}
                   />
                   <Clerk.FieldError className="mt-2 block text-xs text-red-600" />
                 </Clerk.Field>
 
                 <SignIn.Action submit asChild>
-                  <Button disabled={isGlobalLoading} className="w-full">
+                  <Button
+                    disabled={isGlobalLoading}
+                    className="w-full rounded-xl"
+                    size={"lg"}
+                  >
                     <Clerk.Loading>
                       {(isLoading) => {
                         return isLoading ? (
@@ -85,7 +95,7 @@ export default function SignInSection() {
                         type="button"
                         variant={"outline"}
                         size={"icon-lg"}
-                        className="w-full shadow-none"
+                        className="w-full shadow-none rounded-xl h-12"
                         disabled={isGlobalLoading}
                       >
                         <Clerk.Loading scope="provider:google">
@@ -121,7 +131,12 @@ export default function SignInSection() {
                     </Clerk.Connection>
                   </div>
                 </div>
-                <Button variant="link" size="sm" asChild className="w-full">
+                <Button
+                  variant="link"
+                  size="sm"
+                  asChild
+                  className="w-full text-neutral-700"
+                >
                   <Clerk.Link navigate="sign-up">
                     Don&apos;t have an account? Sign up
                   </Clerk.Link>
