@@ -2,8 +2,11 @@
 
 import { motion } from "motion/react";
 import Link from "next/link";
+import { landingCopy } from "@/config/landing-copy";
 
 export default function FooterSection() {
+  const { footer } = landingCopy;
+
   return (
     <section className="h-[50vh] min-h-[400px] w-full snap-start flex flex-col items-center justify-center p-4 bg-brand-ink text-white relative overflow-hidden">
       {/* Decorative Circles */}
@@ -17,9 +20,12 @@ export default function FooterSection() {
           transition={{ duration: 0.6 }}
           className="text-5xl md:text-8xl font-black tracking-tighter mb-8 leading-none"
         >
-          READY TO
-          <br />
-          DREAM?
+          {footer.headingLines.map((line, index) => (
+            <span key={line}>
+              {line}
+              {index < footer.headingLines.length - 1 ? <br /> : null}
+            </span>
+          ))}
         </motion.h2>
 
         <motion.button
@@ -28,24 +34,17 @@ export default function FooterSection() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="px-12 py-5 bg-white text-black text-xl font-bold rounded-full hover:scale-105 transition-transform"
         >
-          Create your handle
+          {footer.cta}
         </motion.button>
 
         <div className="mt-20 flex flex-col md:flex-row items-center justify-between w-full text-neutral-400 text-sm">
-          <div className="mb-4 md:mb-0">© 2025, Designed by justhumanb2ing</div>
+          <div className="mb-4 md:mb-0">{footer.copyright}</div>
           <div className="flex gap-8">
-            <Link
-              href={"/sign-in"}
-              className="hover:text-white transition-colors"
-            >
-              Sign in
-            </Link>
-            <Link href="#" className="hover:text-white transition-colors">
-              Privacy
-            </Link>
-            <Link href="#" className="hover:text-white transition-colors">
-              Terms
-            </Link>
+            {footer.links.map((link) => (
+              <Link key={link.label} href={link.href} className="hover:text-white transition-colors">
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>

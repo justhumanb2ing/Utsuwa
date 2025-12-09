@@ -2,10 +2,14 @@
 
 import { motion } from "motion/react";
 import { ArrowRight } from "lucide-react";
+import { landingCopy } from "@/config/landing-copy";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
+import { Highlighter } from "../ui/highlighter";
 
 export default function HeroSection() {
+  const { hero } = landingCopy;
+
   return (
     <section className="h-dvh w-full snap-start flex flex-col items-center justify-center relative overflow-hidden bg-white px-4">
       {/* Background Paint Splashes */}
@@ -64,15 +68,17 @@ export default function HeroSection() {
       />
 
       <div className="container mx-auto max-w-6xl z-10 flex flex-col items-center text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <h2 className="text-brand-indigobg-brand-indigo font-bold tracking-widest uppercase mb-4 text-sm md:text-base">
-            Your Corner of the Internet
-          </h2>
-        </motion.div>
+        <Highlighter action="highlight" color="#758bfd" strokeWidth={1} isView>
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="text-brand-indigobg-brand-indigo font-bold tracking-widest uppercase mb-4 text-sm md:text-base">
+              {hero.eyebrow}
+            </h2>
+          </motion.div>
+        </Highlighter>
 
         <motion.h1
           initial={{ opacity: 0, scale: 0.9 }}
@@ -80,7 +86,7 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.9] mb-8 text-black"
         >
-          DAYDREAM
+          {hero.title}
         </motion.h1>
 
         <motion.p
@@ -89,8 +95,7 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="text-base md:text-xl max-w-2xl mb-10 font-light"
         >
-          Curate your digital identity. Share your links, music, photos, and
-          more in a beautiful, grid-based profile.
+          {hero.description}
         </motion.p>
 
         <motion.div
@@ -107,7 +112,7 @@ export default function HeroSection() {
               "hover:bg-brand-ink-hover"
             )}
           >
-            Create your handle
+            {hero.cta}
             <ArrowRight className="w-5 h-5" />
           </Button>
         </motion.div>

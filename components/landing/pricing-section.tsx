@@ -2,10 +2,13 @@
 
 import { motion } from "motion/react";
 import { Check } from "lucide-react";
+import { landingCopy } from "@/config/landing-copy";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 
 export default function PricingSection() {
+  const { pricing } = landingCopy;
+
   return (
     <section className="h-screen w-full snap-start flex items-center justify-center p-4 bg-white relative overflow-hidden">
       {/* Background blobs */}
@@ -19,11 +22,9 @@ export default function PricingSection() {
           className="text-center mb-16"
         >
           <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-4">
-            SIMPLE PRICING
+            {pricing.heading}
           </h2>
-          <p className="text-xl text-neutral-700">
-            Start for free, upgrade for superpowers.
-          </p>
+          <p className="text-xl text-neutral-700">{pricing.description}</p>
         </motion.div>
 
         <motion.div
@@ -33,7 +34,7 @@ export default function PricingSection() {
           className="text-center p-10 flex justify-center hover:scale-[1.02] transition-transform duration-300 font-bold"
         >
           <Badge variant={"secondary"} className="bg-brand-indigo text-white font-medium px-3 py-1">
-            Coming Soon!
+            {pricing.comingSoon}
           </Badge>
         </motion.div>
         {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">

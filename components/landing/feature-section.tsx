@@ -3,10 +3,15 @@
 import React from "react";
 import { motion } from "motion/react";
 import Image from "next/image";
+import { landingCopy } from "@/config/landing-copy";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 
 export default function FeatureSection() {
+  const {
+    feature: { primary, secondary },
+  } = landingCopy;
+
   return (
     <div className="w-full bg-white">
       {/* Feature 1 */}
@@ -19,30 +24,26 @@ export default function FeatureSection() {
             viewport={{ once: false }}
           >
             <h3 className="text-brand-poppy font-bold uppercase tracking-widest mb-4">
-              Drag & Drop
+              {primary.tag}
             </h3>
             <h2 className="text-5xl md:text-7xl font-black tracking-tight leading-none mb-6">
-              ORGANIZE
-              <br />
-              YOUR CHAOS
+              {primary.headingLines.map((line, index) => (
+                <span key={line}>
+                  {line}
+                  {index < primary.headingLines.length - 1 ? <br /> : null}
+                </span>
+              ))}
             </h2>
             <p className="text-xl text-neutral-700 mb-8 max-w-md">
-              Just like playing with blocks. Drag, resize, and arrange your
-              content to tell your story the way you want.
+              {primary.description}
             </p>
             <ul className="space-y-4 font-semibold text-lg">
-              <li className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-brand-indigo" />
-                Infinite layouts
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-brand-indigo" />
-                Resize any widget
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-brand-indigo" />
-                Group related content
-              </li>
+              {primary.bullets.map((bullet) => (
+                <li key={bullet} className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full bg-brand-indigo" />
+                  {bullet}
+                </li>
+              ))}
             </ul>
           </motion.div>
 
@@ -68,20 +69,25 @@ export default function FeatureSection() {
                   className="bg-white rounded-2xl p-4 shadow-lg flex flex-col justify-between"
                 >
                   <div className="w-8 h-8 bg-brand-potext-brand-poppy rounded-full" />
-                  <span className="font-bold">Photos</span>
+                  <span className="font-bold">{primary.cards[0]?.title}</span>
                 </motion.div>
                 <motion.div
                   whileHover={{ scale: 1.05 }}
-                  className="bg-black text-white rounded-2xl p-4 shadow-lg col-span-1 row-span-2 flex flex-col justify-between"
+                  className="bg-brand-poppy text-white rounded-2xl p-4 shadow-lg col-span-1 row-span-2 flex flex-col justify-between"
                 >
-                  <div className="text-4xl">👋</div>
-                  <span className="font-bold text-xl">About Me</span>
+                  <div className="text-4xl">{primary.cards[1]?.accent}</div>
+                  <span className="font-bold text-xl">
+                    {primary.cards[1]?.title}
+                  </span>
                 </motion.div>
                 <motion.div
                   whileHover={{ scale: 1.05 }}
-                  className="bg-brand-indigo rounded-2xl p-4 shadow-lg flex items-center justify-center"
+                  className="bg-brand-indigo rounded-2xl p-4 shadow-lg flex flex-col justify-between"
                 >
-                  <span className="font-bold text-white">Music</span>
+                  <div className="w-8 h-8 bg-brand-potext-brand-poppy rounded-full" />
+                  <span className="font-bold text-white">
+                    {primary.cards[2]?.title}
+                  </span>
                 </motion.div>
               </div>
             </div>
@@ -110,7 +116,9 @@ export default function FeatureSection() {
                 unoptimized
               />
               <div className="absolute bottom-8 left-8 right-8 bg-white/90 backdrop-blur-md p-6 rounded-2xl">
-                <p className="font-bold text-lg mb-2">@sarah_creative</p>
+                <p className="font-bold text-lg mb-2">
+                  {secondary.profileHandle}
+                </p>
                 <div className="flex gap-2">
                   <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
                     <div className="h-full bg-brand-indigo w-3/4" />
@@ -129,16 +137,18 @@ export default function FeatureSection() {
             className="order-1 md:order-2"
           >
             <h3 className="text-brand-inbg-brand-indigo font-bold uppercase tracking-widest mb-4">
-              Beautifully Responsive
+              {secondary.tag}
             </h3>
             <h2 className="text-5xl md:text-7xl font-black tracking-tight leading-none mb-6">
-              LOOKS GOOD
-              <br />
-              EVERYWHERE
+              {secondary.headingLines.map((line, index) => (
+                <span key={line}>
+                  {line}
+                  {index < secondary.headingLines.length - 1 ? <br /> : null}
+                </span>
+              ))}
             </h2>
             <p className="text-xl text-neutral-700 mb-8 max-w-md">
-              Whether on a giant desktop or a tiny phone, your Daydream page
-              adapts perfectly. No coding required.
+              {secondary.description}
             </p>
             <Button
               size={"icon-lg"}
@@ -148,7 +158,7 @@ export default function FeatureSection() {
                 "hover:bg-brand-poppy-hover"
               )}
             >
-              Start Creating
+              {secondary.cta}
             </Button>
           </motion.div>
         </div>
