@@ -443,28 +443,52 @@ export const PageBlocks = ({
 
   const handleLayoutChangeInternal = useCallback(
     (_currentLayout: Layout[], allLayouts: Layouts) => {
+      const canonicalFromEvent = pickCanonicalLayout(
+        allLayouts,
+        currentBreakpoint
+      );
       const normalized = synchronizeLayouts(
         allLayouts,
-        canonicalLayout,
+        canonicalFromEvent,
         sortedBlocks,
         isEditable
       );
       layoutsRef.current = normalized;
       setLayouts(normalized);
     },
-    [canonicalLayout, isEditable, sortedBlocks]
+    [currentBreakpoint, isEditable, sortedBlocks]
   );
 
-  const commitLayoutChange = useCallback(() => {
-    if (!isEditable || !onLayoutChange) return;
-    const payload = extractLayoutPayload(
-      layoutsRef.current,
-      persistedBlockIds,
-      currentBreakpoint
-    );
-    if (!payload.length) return;
-    onLayoutChange(payload);
-  }, [currentBreakpoint, isEditable, onLayoutChange, persistedBlockIds]);
+  type LayoutChangeArgs = { currentLayout?: Layout[]; allLayouts?: Layouts };
+  const commitLayoutChange = useCallback(
+    ({ currentLayout, allLayouts }: LayoutChangeArgs = {}) => {
+      if (!isEditable || !onLayoutChange) return;
+
+      const sourceLayouts: Layouts = {
+        ...layoutsRef.current,
+        ...(allLayouts ?? {}),
+      };
+
+      if (currentBreakpoint) {
+        const nextLayoutForBreakpoint =
+          currentLayout ??
+          allLayouts?.[currentBreakpoint] ??
+          layoutsRef.current[currentBreakpoint];
+        if (nextLayoutForBreakpoint) {
+          sourceLayouts[currentBreakpoint] = nextLayoutForBreakpoint;
+        }
+      }
+
+      const payload = extractLayoutPayload(
+        sourceLayouts,
+        persistedBlockIds,
+        currentBreakpoint
+      );
+      if (!payload.length) return;
+      onLayoutChange(payload);
+    },
+    [currentBreakpoint, isEditable, onLayoutChange, persistedBlockIds]
+  );
 
   const renderBlockCard = (item: BlockItem) => {
     const isPlaceholder = item.kind === "placeholder";
@@ -639,13 +663,17 @@ export const PageBlocks = ({
             containerPadding={DEFAULT_PADDING}
             margin={DEFAULT_MARGIN}
             isDraggable={isEditable}
-            isResizable={false}
-            compactType="vertical"
-            draggableCancel={DRAG_CANCEL_SELECTOR}
-            onLayoutChange={handleLayoutChangeInternal}
-            onDragStop={commitLayoutChange}
-            onResizeStop={commitLayoutChange}
-          >
+          isResizable={false}
+          compactType="vertical"
+          draggableCancel={DRAG_CANCEL_SELECTOR}
+          onLayoutChange={handleLayoutChangeInternal}
+          onDragStop={(layout) =>
+            commitLayoutChange({ currentLayout: layout })
+          }
+          onResizeStop={(layout) =>
+            commitLayoutChange({ currentLayout: layout })
+          }
+        >
             {sortedBlocks.map((item) => {
               const key = item.kind === "persisted" ? item.block.id : item.id;
               return (
