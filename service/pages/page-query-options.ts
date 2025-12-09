@@ -20,6 +20,7 @@ import { profileQueryOptions } from "../profile/profile-query-options";
 import { normalizeHandle } from "@/lib/handle";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ProfileBffPayload } from "@/types/profile";
+import { buildHandleCandidates } from "../profile/build-handle-candidates";
 
 const pageQueryKey = ["page"] as const;
 
@@ -264,7 +265,7 @@ export const pageQueryOptions = {
       TogglePageVisibilityResult,
       Error,
       void,
-      { previousProfile?: ProfileBffPayload | null }
+      { previousProfiles: Record<string, ProfileBffPayload> }
     >({
       mutationKey: [
         ...pageQueryKey,
@@ -281,19 +282,29 @@ export const pageQueryOptions = {
       onMutate: async () => {
         const queryClient = resolveQueryClient(options.queryClient);
 
-        await queryClient.cancelQueries({
-          queryKey: profileQueryOptions.byHandleKey(options.handle),
-        });
+        const handleCandidates = buildHandleCandidates(options.handle);
+        const previousProfiles: Record<string, ProfileBffPayload> = {};
 
-        const previousProfile = queryClient.getQueryData<ProfileBffPayload>(
-          profileQueryOptions.byHandleKey(options.handle)
+        await Promise.all(
+          handleCandidates.map((handle) =>
+            queryClient.cancelQueries({
+              queryKey: profileQueryOptions.byHandleKey(handle),
+            })
+          )
         );
 
-        if (previousProfile) {
+        handleCandidates.forEach((handle) => {
+          const previousProfile = queryClient.getQueryData<ProfileBffPayload>(
+            profileQueryOptions.byHandleKey(handle)
+          );
+
+          if (!previousProfile) return;
+
+          previousProfiles[handle] = previousProfile;
           const nextIsPublic = !Boolean(previousProfile.page.is_public);
 
           queryClient.setQueryData<ProfileBffPayload>(
-            profileQueryOptions.byHandleKey(options.handle),
+            profileQueryOptions.byHandleKey(handle),
             {
               ...previousProfile,
               page: {
@@ -302,19 +313,21 @@ export const pageQueryOptions = {
               },
             }
           );
-        }
+        });
 
-        return { previousProfile };
+        return { previousProfiles };
       },
       onError: (_error, _variables, context) => {
         const queryClient = resolveQueryClient(options.queryClient);
 
-        if (context?.previousProfile) {
-          queryClient.setQueryData(
-            profileQueryOptions.byHandleKey(options.handle),
-            context.previousProfile
-          );
-        }
+        Object.entries(context?.previousProfiles ?? {}).forEach(
+          ([handle, previousProfile]) => {
+            queryClient.setQueryData(
+              profileQueryOptions.byHandleKey(handle),
+              previousProfile
+            );
+          }
+        );
       },
       onSettled: async () => {
         const queryClient = resolveQueryClient(options.queryClient);

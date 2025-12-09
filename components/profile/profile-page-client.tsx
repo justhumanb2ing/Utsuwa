@@ -15,8 +15,6 @@ import {
 } from "./save-status-context";
 import { ProfileForm } from "./profile-form";
 import { ProfileBlocksClient } from "./profile-blocks-client";
-import { HandleChangeForm } from "./handle-change-form";
-import { PageVisibilityToggle } from "./page-visibility-toggle";
 
 import { SettingDropdownMenu } from "./setting-dropdownmenu";
 
@@ -59,61 +57,50 @@ export default function ProfilePageClient({
                   userId,
                 })}
               >
-                {({ data: { isOwner, page, blocks } }) => (
-                  <SaveStatusProvider>
-                    <main className="space-y-6 grow">
-                      {isOwner && <StatusSection />}
-                      {isOwner ? (
-                        <HandleChangeForm
-                          pageId={page.id}
-                          ownerId={page.owner_id}
-                          handle={page.handle}
-                          isOwner={isOwner}
-                          supabase={supabase}
-                          userId={userId}
-                        />
-                      ) : null}
-                      {isOwner ? (
-                        <PageVisibilityToggle
-                          pageId={page.id}
-                          ownerId={page.owner_id}
-                          handle={page.handle}
-                          isPublic={page.is_public}
-                          isOwner={isOwner}
-                          supabase={supabase}
-                          userId={userId}
-                        />
-                      ) : null}
-                      <ProfileForm
-                        pageId={page.id}
-                        handle={page.handle}
-                        ownerId={page.owner_id}
-                        isOwner={isOwner}
-                        pageTitle={page.title ?? undefined}
-                        pageDescription={page.description ?? undefined}
-                        pageImageUrl={page.image_url ?? undefined}
-                        supabase={supabase}
-                        userId={userId}
-                      />
-                      <ProfileBlocksClient
-                        initialBlocks={blocks}
-                        handle={page.handle}
-                        pageId={page.id}
-                        isOwner={isOwner}
-                        supabase={supabase}
-                        userId={userId}
-                      />
-                    </main>
-                  </SaveStatusProvider>
-                )}
+                {({ data: { isOwner, page, blocks } }) => {
+                  const profile = { isOwner, page };
+
+                  return (
+                    <SaveStatusProvider>
+                      <>
+                        <div className="space-y-6 grow">
+                          {isOwner && <StatusSection />}
+                          <ProfileForm
+                            pageId={page.id}
+                            handle={page.handle}
+                            ownerId={page.owner_id}
+                            isOwner={isOwner}
+                            pageTitle={page.title ?? undefined}
+                            pageDescription={page.description ?? undefined}
+                            pageImageUrl={page.image_url ?? undefined}
+                            supabase={supabase}
+                            userId={userId}
+                          />
+                          <ProfileBlocksClient
+                            initialBlocks={blocks}
+                            handle={page.handle}
+                            pageId={page.id}
+                            isOwner={isOwner}
+                            supabase={supabase}
+                            userId={userId}
+                          />
+                        </div>
+                        <aside className="sticky bottom-5 left-0 bg-background w-fit">
+                          <SettingDropdownMenu
+                            profile={profile}
+                            supabase={supabase}
+                            userId={userId}
+                          />
+                        </aside>
+                      </>
+                    </SaveStatusProvider>
+                  );
+                }}
               </SuspenseQuery>
             </Suspense>
           </ErrorBoundary>
         )}
       </QueryErrorResetBoundary>
-      <aside className="sticky bottom-5 left-0 bg-background w-fit">
-        <SettingDropdownMenu />
-      </aside>
     </main>
   );
 }

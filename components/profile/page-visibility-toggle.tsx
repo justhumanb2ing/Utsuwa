@@ -1,51 +1,51 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
 import { pageQueryOptions } from "@/service/pages/page-query-options";
 import { useSaveStatus } from "./save-status-context";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ProfileBffPayload } from "@/types/profile";
 
 type PageVisibilityToggleProps = {
-  pageId: string;
-  ownerId: string;
-  handle: string;
-  isPublic: boolean | null;
-  isOwner: boolean;
+  profile: Pick<ProfileBffPayload, "isOwner" | "page">;
   supabase: SupabaseClient;
   userId: string | null;
 };
 
 export function PageVisibilityToggle({
-  pageId,
-  ownerId,
-  handle,
-  isPublic,
-  isOwner,
+  profile,
   supabase,
   userId,
 }: PageVisibilityToggleProps) {
+  const { isOwner, page } = profile;
+
   const queryClient = useQueryClient();
   const { setStatus } = useSaveStatus();
+  const [checked, setChecked] = useState(Boolean(page.is_public));
 
   const toggleVisibility = useMutation(
     pageQueryOptions.toggleVisibility({
-      pageId,
-      ownerId,
-      handle,
+      pageId: page.id,
+      ownerId: page.owner_id,
+      handle: page.handle,
       supabase,
       userId,
       queryClient,
     })
   );
 
-  const checked = useMemo(
-    () => Boolean(isPublic),
-    [isPublic]
-  );
+  useEffect(() => {
+    setChecked(Boolean(page.is_public));
+  }, [page.is_public]);
 
   const handleToggle = useCallback(async () => {
+    const previous = checked;
+    const next = !previous;
+
+    setChecked(next);
     setStatus("saving");
     try {
       const result = await toggleVisibility.mutateAsync();
@@ -56,17 +56,23 @@ export function PageVisibilityToggle({
       setStatus("saved");
     } catch (error) {
       setStatus("error");
+      setChecked(previous);
+      Sentry.captureException(error);
     }
-  }, [setStatus, toggleVisibility]);
+  }, [checked, setStatus, toggleVisibility]);
 
   if (!isOwner) return null;
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border px-4 py-3">
+    <div className="flex w-full items-center justify-between gap-4">
       <div className="space-y-1">
-        <p className="text-sm font-medium text-foreground">페이지 공개</p>
+        <p className="text-xs font-medium text-foreground">Change visibility</p>
         <p className="text-xs text-muted-foreground">
-          공개 시 누구나 프로필을 볼 수 있어요.
+          {checked ? (
+            <span>Public — Anyone can view</span>
+          ) : (
+            <span>Private — Only you can view</span>
+          )}
         </p>
       </div>
       <Switch

@@ -1,35 +1,100 @@
+"use client";
+
+import { ArrowUpRightIcon, Settings2Icon } from "lucide-react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { ProfileBffPayload } from "@/types/profile";
 import { Button } from "../ui/button";
-import { Settings2Icon } from "lucide-react";
+import { PageVisibilityToggle } from "./page-visibility-toggle";
+import { cn } from "@/lib/utils";
 
-export function SettingDropdownMenu() {
+import { HandleChangeForm } from "./handle-change-form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
+
+type SettingDropdownMenuProps = {
+  profile: Pick<ProfileBffPayload, "isOwner" | "page">;
+  supabase: SupabaseClient;
+  userId: string | null;
+};
+
+export function SettingDropdownMenu({
+  profile,
+  supabase,
+  userId,
+}: SettingDropdownMenuProps) {
+  const { isOwner, page } = profile;
+
+  if (!isOwner) return null;
+
   return (
-    <DropdownMenu dir="ltr">
-      <DropdownMenuTrigger asChild>
-        <Button size={"icon-sm"} variant={"ghost"} className="rounded-full text-muted-foreground">
-          <Settings2Icon />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        className="w-56 rounded-xl p-2 space-y-1"
-        align="start"
-        sideOffset={8}
-        side="top"
+    <Dialog>
+      <DropdownMenu dir="ltr">
+        <DropdownMenuTrigger asChild>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            className="rounded-full text-muted-foreground"
+          >
+            <Settings2Icon />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          className="w-64 rounded-xl p-2 space-y-1"
+          align="start"
+          sideOffset={8}
+          side="top"
+        >
+          <DialogTrigger asChild>
+            <DropdownMenuItem className="text-xs flex-row justify-between items-center gap-1">
+              <div className="space-y-1">
+                <p>Change Handle</p>
+                <p className="text-muted-foreground">{page.handle}</p>
+              </div>
+              <ArrowUpRightIcon />
+            </DropdownMenuItem>
+          </DialogTrigger>
+
+          <DropdownMenuItem
+            className={cn(
+              "flex-col items-start gap-3 p-2",
+              "focus:bg-inherit focus:text-inherit"
+            )}
+            onSelect={(event) => event.preventDefault()}
+          >
+            <PageVisibilityToggle
+              profile={profile}
+              supabase={supabase}
+              userId={userId}
+            />
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <DialogContent
+        className="sm:max-w-[425px] border-none rounded-xl"
+        showCloseButton={false}
       >
-        <DropdownMenuItem className="text-xs flex-col items-start gap-1">
-          <p>Change Handle</p>
-          <p className="text-muted-foreground">real handle</p>
-        </DropdownMenuItem>
-        <DropdownMenuItem className="text-xs flex-col items-start gap-1">
-          <p>Change visibility</p>
-          <p className="text-muted-foreground">visible</p>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <DialogHeader className="hidden">
+          <DialogTitle></DialogTitle>
+          <DialogDescription></DialogDescription>
+        </DialogHeader>
+        <HandleChangeForm
+          profile={profile}
+          supabase={supabase}
+          userId={userId}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }
