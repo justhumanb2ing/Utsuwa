@@ -59,7 +59,7 @@ export function ProfileForm({
           event.preventDefault();
           void form.handleSubmit(onSubmit)();
         }}
-        className="space-y-5"
+        className="space-y-5 min-w-0"
       >
         <input type="hidden" {...form.register("pageId")} />
         <input type="hidden" {...form.register("ownerId")} />
@@ -86,7 +86,7 @@ export function ProfileForm({
                 isOwner && document.getElementById(fileInputId)?.click()
               }
               variant={"secondary"}
-              className="size-40 overflow-hidden rounded-full focus:outline-none hover:ring hover:ring-zinc-200 p-0"
+              className="size-40 xl:size-52 overflow-hidden rounded-full focus:outline-none hover:ring hover:ring-zinc-200 p-0 mb-6"
               aria-label="페이지 이미지 변경"
               disabled={!isOwner}
             >
@@ -115,7 +115,7 @@ export function ProfileForm({
                 <Input
                   placeholder="페이지 제목"
                   className={cn(
-                    "w-full rounded-md border-0 shadow-none px-3 py-2 text-5xl! font-bold! text-zinc-900 h-20 p-0",
+                    "w-full min-w-0 rounded-none border-0 shadow-none px-3 py-2 text-3xl md:text-4xl xl:text-5xl! font-bold! text-zinc-900 h-fit! p-0 wrap-break-word whitespace-normal",
                     "focus:outline-none focus:ring-0 focus-visible:ring-0"
                   )}
                   readOnly={!isOwner}
@@ -136,8 +136,8 @@ export function ProfileForm({
                 <Textarea
                   placeholder="페이지 설명을 입력하세요"
                   className={cn(
-                    "w-full border-none rounded-none shadow-none p-0 text-zinc-900 min-h-[120px] resize-none",
-                    "focus-visible:outline-none focus-visible:ring-0 text-lg!"
+                    "w-full min-w-0 border-none rounded-none shadow-none p-0 text-zinc-900 min-h-[120px] resize-none wrap-break-word whitespace-pre-wrap",
+                    "focus-visible:outline-none focus-visible:ring-0 text-base! xl:text-lg!"
                   )}
                   readOnly={!isOwner}
                   {...field}

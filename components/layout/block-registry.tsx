@@ -32,14 +32,17 @@ type BlockRegistryPanelProps = {
   onSelectBlock: (type: BlockType) => void;
 };
 
-export const BlockRegistryPanel = ({ onSelectBlock }: BlockRegistryPanelProps) => {
+export const BlockRegistryPanel = ({
+  onSelectBlock,
+}: BlockRegistryPanelProps) => {
   const registryEntries = useMemo(
-    () => Object.entries(BLOCK_REGISTRY) as [BlockRegistryKey, BlockRegistryItem][],
+    () =>
+      Object.entries(BLOCK_REGISTRY) as [BlockRegistryKey, BlockRegistryItem][],
     []
   );
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-3 fixed bottom-0 z-20">
       <div className="flex items-center gap-1">
         {registryEntries.map(([key, item]) => {
           const Icon = resolveIconComponent(item.icon);

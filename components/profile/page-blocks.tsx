@@ -2,31 +2,18 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
-  useCallback,
-  type ReactNode,
   type HTMLAttributes,
 } from "react";
 import {
-  DndContext,
-  DragOverlay,
-  type DragEndEvent,
-  type DragStartEvent,
-  PointerSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  rectSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+  Responsive,
+  type Layout,
+  type Layouts,
+} from "react-grid-layout";
 import Image from "next/image";
 import Link from "next/link";
 import { Loader2, Trash2 } from "lucide-react";
@@ -49,19 +36,23 @@ import {
 } from "@/components/profile/block-editors";
 import { useSaveStatus } from "@/components/profile/save-status-context";
 import { cn } from "@/lib/utils";
-import { deriveLayoutMap, type LayoutInput } from "@/service/blocks/block-layout";
+import {
+  CANONICAL_BREAKPOINT,
+  GRID_BREAKPOINTS,
+  GRID_RESPONSIVE_COLUMNS,
+  GRID_ROW_HEIGHT,
+  GRID_ROWS,
+  MAX_SIZE,
+  MIN_SIZE,
+  type BlockLayout,
+  type GridBreakpoint,
+  deriveLayoutMap,
+} from "@/service/blocks/block-layout";
 
 type PlaceholderBlock = { kind: "placeholder"; id: string; type: BlockType };
 type PersistedBlock = { kind: "persisted"; block: BlockWithDetails };
 
 type BlockItem = PlaceholderBlock | PersistedBlock;
-
-type SortableRenderProps = {
-  isDragging: boolean;
-  isDraggable: boolean;
-  isOver?: boolean;
-  isOverlay?: boolean;
-};
 
 type DragGuardHandlers = Pick<
   HTMLAttributes<HTMLElement>,
@@ -80,9 +71,17 @@ type PageBlocksProps = {
   onCancelPlaceholder: (placeholderId: string) => void;
   onDeleteBlock?: (blockId: BlockWithDetails["id"]) => void;
   deletingBlockIds?: Set<BlockWithDetails["id"]>;
-  onReorder?: (event: DragEndEvent) => void;
+  onLayoutChange?: (layout: BlockLayout[]) => void;
   disableReorder?: boolean;
 };
+
+const BREAKPOINT_KEYS = Object.keys(
+  GRID_RESPONSIVE_COLUMNS
+) as GridBreakpoint[];
+const DRAG_CANCEL_SELECTOR =
+  "input,textarea,button,a,select,option,[data-no-drag]";
+const DEFAULT_MARGIN: [number, number] = [32, 32];
+const DEFAULT_PADDING: [number, number] = [0, 0];
 
 const extractLinkData = (
   block?: BlockWithDetails
@@ -103,6 +102,225 @@ const extractTextData = (
   };
 };
 
+const clampSpan = (value: number | null | undefined, max: number): number => {
+  const resolvedMax = Math.max(Math.floor(max), MIN_SIZE);
+  const normalized =
+    typeof value === "number" && !Number.isNaN(value)
+      ? Math.max(Math.round(value), MIN_SIZE)
+      : MIN_SIZE;
+  return Math.min(normalized, Math.min(resolvedMax, MAX_SIZE));
+};
+
+const clampCoordinate = (
+  value: number | null | undefined,
+  maxIndex: number
+): number => {
+  const resolvedMax = Math.max(Math.floor(maxIndex), 0);
+  const normalized =
+    typeof value === "number" && !Number.isNaN(value)
+      ? Math.floor(value)
+      : 0;
+  return Math.min(Math.max(normalized, 0), resolvedMax);
+};
+
+const toLayoutId = (item: BlockItem): string =>
+  item.kind === "persisted" ? item.block.id : item.id;
+
+const toCanonicalLayout = (items: BlockItem[]): Layout[] => {
+  const canonicalColumns = GRID_RESPONSIVE_COLUMNS[CANONICAL_BREAKPOINT];
+  const layoutInputs = items.map((item, index) => {
+    if (item.kind === "persisted") {
+      const { block } = item;
+      return {
+        id: block.id,
+        x: block.x ?? 0,
+        y: block.y ?? index,
+        w: block.w ?? MIN_SIZE,
+        h: block.h ?? MIN_SIZE,
+      };
+    }
+    return {
+      id: item.id,
+      x: 0,
+      y: index,
+      w: MIN_SIZE,
+      h: MIN_SIZE,
+    };
+  });
+
+  const layoutMap = deriveLayoutMap(layoutInputs);
+
+  return layoutInputs.map((input, index) => {
+    const placement = layoutMap.get(input.id);
+    const w = clampSpan(placement?.w ?? input.w, canonicalColumns);
+    const h = clampSpan(placement?.h ?? input.h, MAX_SIZE);
+    const maxX = canonicalColumns - w;
+    const maxY = GRID_ROWS - h;
+
+    return {
+      i: input.id,
+      x: clampCoordinate(placement?.x ?? input.x, maxX),
+      y: clampCoordinate(placement?.y ?? index, maxY),
+      w,
+      h,
+      isDraggable: true,
+      isResizable: false,
+      static: false,
+    };
+  });
+};
+
+const buildLayoutItem = (
+  item: BlockItem,
+  columns: number,
+  fallbackIndex: number,
+  isEditable: boolean
+): Layout => {
+  const block = item.kind === "persisted" ? item.block : undefined;
+  const width = clampSpan(block?.w, columns);
+  const height = clampSpan(block?.h, MAX_SIZE);
+  const maxX = columns - width;
+  const maxY = GRID_ROWS - height;
+  const fallbackY = block?.y ?? fallbackIndex;
+
+  return {
+    i: toLayoutId(item),
+    x: clampCoordinate(block?.x, maxX),
+    y: clampCoordinate(fallbackY, maxY),
+    w: width,
+    h: height,
+    isDraggable: isEditable,
+    isResizable: false,
+    static: !isEditable,
+  };
+};
+
+const normalizeLayoutEntry = (
+  entry: Layout,
+  columns: number,
+  fallbackIndex: number,
+  isEditable: boolean
+): Layout => {
+  const width = clampSpan(entry.w, columns);
+  const height = clampSpan(entry.h, MAX_SIZE);
+  const maxX = columns - width;
+  const maxY = GRID_ROWS - height;
+  const fallbackY =
+    typeof entry.y === "number" && !Number.isNaN(entry.y)
+      ? entry.y
+      : fallbackIndex;
+
+  return {
+    ...entry,
+    x: clampCoordinate(entry.x, maxX),
+    y: clampCoordinate(fallbackY, maxY),
+    w: width,
+    h: height,
+    isDraggable: isEditable,
+    isResizable: false,
+    static: !isEditable,
+  };
+};
+
+const synchronizeLayouts = (
+  sourceLayouts: Layouts,
+  canonicalLayout: Layout[],
+  items: BlockItem[],
+  isEditable: boolean
+): Layouts => {
+  const nextLayouts: Layouts = {};
+  const canonicalMap = new Map(canonicalLayout.map((entry) => [entry.i, entry]));
+
+  BREAKPOINT_KEYS.forEach((breakpoint) => {
+    const columns = GRID_RESPONSIVE_COLUMNS[breakpoint];
+    const existing = sourceLayouts[breakpoint] ?? [];
+    const existingMap = new Map(existing.map((layout) => [layout.i, layout]));
+
+    nextLayouts[breakpoint] = items.map((item, index) => {
+      const id = toLayoutId(item);
+      const base =
+        existingMap.get(id) ??
+        canonicalMap.get(id) ??
+        buildLayoutItem(item, columns, index, isEditable);
+      return normalizeLayoutEntry(base, columns, index, isEditable);
+    });
+  });
+
+  return nextLayouts;
+};
+
+const buildResponsiveLayouts = (
+  canonicalLayout: Layout[],
+  items: BlockItem[],
+  isEditable: boolean
+): Layouts => synchronizeLayouts({}, canonicalLayout, items, isEditable);
+
+const resolveBreakpoint = (width: number): GridBreakpoint => {
+  const sorted = [...BREAKPOINT_KEYS].sort(
+    (a, b) => GRID_BREAKPOINTS[b] - GRID_BREAKPOINTS[a]
+  );
+  const match = sorted.find((key) => width >= GRID_BREAKPOINTS[key]);
+  return match ?? "xs";
+};
+
+const computeRowHeight = (
+  width: number,
+  breakpoint: GridBreakpoint
+): number => {
+  const cols = GRID_RESPONSIVE_COLUMNS[breakpoint];
+  const [paddingX] = DEFAULT_PADDING;
+  const [marginX] = DEFAULT_MARGIN;
+  const columnWidth =
+    (width - paddingX * 2 - marginX * (cols - 1)) / cols || GRID_ROW_HEIGHT;
+  return Math.max(Math.floor(columnWidth), MIN_SIZE);
+};
+
+const pickCanonicalLayout = (
+  layouts: Layouts,
+  preferredBreakpoint?: GridBreakpoint
+): Layout[] => {
+  if (preferredBreakpoint && layouts[preferredBreakpoint]?.length) {
+    return layouts[preferredBreakpoint];
+  }
+
+  if (layouts[CANONICAL_BREAKPOINT]?.length) {
+    return layouts[CANONICAL_BREAKPOINT];
+  }
+
+  const fallback = BREAKPOINT_KEYS.map((key) => layouts[key]).find(
+    (layout) => layout && layout.length
+  );
+  return fallback ?? [];
+};
+
+const extractLayoutPayload = (
+  layouts: Layouts,
+  persistedIds: Set<string>,
+  preferredBreakpoint?: GridBreakpoint
+): BlockLayout[] => {
+  const canonicalLayout = pickCanonicalLayout(layouts, preferredBreakpoint);
+  const breakpointForPayload =
+    preferredBreakpoint ?? CANONICAL_BREAKPOINT;
+  const columnsForPayload = GRID_RESPONSIVE_COLUMNS[breakpointForPayload];
+
+  return canonicalLayout
+    .filter((item) => persistedIds.has(item.i))
+    .map((item) => {
+      const width = clampSpan(item.w, columnsForPayload);
+      const height = clampSpan(item.h, MAX_SIZE);
+      const maxX = columnsForPayload - width;
+      const maxY = GRID_ROWS - height;
+
+      return {
+        id: item.i,
+        x: clampCoordinate(item.x, maxX),
+        y: clampCoordinate(item.y, maxY),
+        w: width,
+        h: height,
+      };
+    });
+};
+
 export const PageBlocks = ({
   items,
   handle,
@@ -111,23 +329,47 @@ export const PageBlocks = ({
   onCancelPlaceholder,
   onDeleteBlock,
   deletingBlockIds,
-  onReorder,
+  onLayoutChange,
   disableReorder,
 }: PageBlocksProps) => {
   const { setStatus } = useSaveStatus();
-  const [isMounted, setIsMounted] = useState(false);
-  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
-  const [activeBlockSize, setActiveBlockSize] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
-  const blockNodeMap = useRef<Map<string, HTMLElement>>(new Map());
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 150, tolerance: 5 },
-    })
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(() =>
+    typeof window === "undefined" ? GRID_BREAKPOINTS.xs : window.innerWidth
   );
+  const [currentBreakpoint, setCurrentBreakpoint] = useState<GridBreakpoint>(() =>
+    resolveBreakpoint(typeof window === "undefined" ? GRID_BREAKPOINTS.xs : window.innerWidth)
+  );
+  const [rowHeight, setRowHeight] = useState<number>(() => {
+    const initialWidth =
+      typeof window === "undefined" ? GRID_BREAKPOINTS.xs : window.innerWidth;
+    const initialBreakpoint = resolveBreakpoint(initialWidth);
+    return computeRowHeight(initialWidth, initialBreakpoint);
+  });
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+
+    const updateWidth = () => {
+      const nextWidth = node.getBoundingClientRect().width;
+      if (nextWidth > 0) {
+        setContainerWidth(nextWidth);
+      }
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(() => updateWidth());
+    observer.observe(node);
+
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    const breakpoint = resolveBreakpoint(containerWidth);
+    setCurrentBreakpoint(breakpoint);
+    setRowHeight(computeRowHeight(containerWidth, breakpoint));
+  }, [containerWidth]);
+  const isEditable = isOwner && !disableReorder;
   const stopEventPropagation = useCallback(
     (event: { stopPropagation: () => void }) => {
       event.stopPropagation();
@@ -142,42 +384,7 @@ export const PageBlocks = ({
     }),
     [stopEventPropagation]
   );
-  const registerBlockNode = useCallback(
-    (id: string, node: HTMLElement | null) => {
-      if (!id) return;
-      if (node) {
-        blockNodeMap.current.set(id, node);
-      } else {
-        blockNodeMap.current.delete(id);
-      }
-    },
-    []
-  );
-  const resetActiveDrag = useCallback(() => {
-    setActiveBlockId(null);
-    setActiveBlockSize(null);
-  }, []);
-  const handleDragStart = useCallback(({ active }: DragStartEvent) => {
-    const currentId = String(active.id);
-    setActiveBlockId(currentId);
-    const rect = blockNodeMap.current.get(currentId)?.getBoundingClientRect();
-    if (rect) {
-      setActiveBlockSize({ width: rect.width, height: rect.height });
-    }
-  }, []);
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      onReorder?.(event);
-      resetActiveDrag();
-    },
-    [onReorder, resetActiveDrag]
-  );
-  const handleDragCancel = useCallback(() => {
-    resetActiveDrag();
-  }, [resetActiveDrag]);
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+
   const sortedBlocks = useMemo(
     () =>
       [...items].sort((a, b) => {
@@ -200,83 +407,77 @@ export const PageBlocks = ({
       }),
     [items]
   );
-  const layoutInputs = useMemo<LayoutInput[]>(
+
+  const persistedBlockIds = useMemo(
     () =>
-      sortedBlocks.map((item) => {
-        if (item.kind === "persisted") {
-          const { block } = item;
-          return {
-            id: block.id,
-            x: block.x ?? 0,
-            y: block.y ?? 0,
-            w: block.w ?? 1,
-            h: block.h ?? 1,
-          };
-        }
-        return {
-          id: item.id,
-          x: 0,
-          y: 0,
-          w: 1,
-          h: 1,
-        };
-      }),
-    [sortedBlocks]
-  );
-  const layoutMap = useMemo(
-    () => deriveLayoutMap(layoutInputs),
-    [layoutInputs]
-  );
-  const resolveLayoutStyle = useCallback(
-    (id: string): CSSProperties | undefined => {
-      const layout = layoutMap.get(id);
-      if (!layout) return undefined;
-      return {
-        gridColumnStart: layout.x + 1,
-        gridColumnEnd: `span ${layout.w}`,
-        gridRowStart: layout.y + 1,
-        gridRowEnd: `span ${layout.h}`,
-      };
-    },
-    [layoutMap]
-  );
-  const sortableBlocks = useMemo(
-    () =>
-      sortedBlocks.filter(
-        (item): item is PersistedBlock => item.kind === "persisted"
+      new Set(
+        sortedBlocks
+          .filter(
+            (item): item is PersistedBlock => item.kind === "persisted"
+          )
+          .map((item) => item.block.id)
       ),
     [sortedBlocks]
   );
-  const activeBlock = useMemo(
-    () =>
-      activeBlockId
-        ? sortableBlocks.find((item) => item.block.id === activeBlockId)
-        : null,
-    [activeBlockId, sortableBlocks]
-  );
-  const canSort = Boolean(
-    isMounted && isOwner && onReorder && sortableBlocks.length > 1
+
+  const canonicalLayout = useMemo(
+    () => toCanonicalLayout(sortedBlocks),
+    [sortedBlocks]
   );
 
-  const renderBlockCard = (
-    item: BlockItem,
-    sortableProps?: SortableRenderProps
-  ) => {
+  const [layouts, setLayouts] = useState<Layouts>(() =>
+    buildResponsiveLayouts(canonicalLayout, sortedBlocks, isEditable)
+  );
+  const layoutsRef = useRef<Layouts>(layouts);
+
+  useEffect(() => {
+    const nextLayouts = synchronizeLayouts(
+      layoutsRef.current,
+      canonicalLayout,
+      sortedBlocks,
+      isEditable
+    );
+    layoutsRef.current = nextLayouts;
+    setLayouts(nextLayouts);
+  }, [canonicalLayout, isEditable, sortedBlocks]);
+
+  const handleLayoutChangeInternal = useCallback(
+    (_currentLayout: Layout[], allLayouts: Layouts) => {
+      const normalized = synchronizeLayouts(
+        allLayouts,
+        canonicalLayout,
+        sortedBlocks,
+        isEditable
+      );
+      layoutsRef.current = normalized;
+      setLayouts(normalized);
+    },
+    [canonicalLayout, isEditable, sortedBlocks]
+  );
+
+  const commitLayoutChange = useCallback(() => {
+    if (!isEditable || !onLayoutChange) return;
+    const payload = extractLayoutPayload(
+      layoutsRef.current,
+      persistedBlockIds,
+      currentBreakpoint
+    );
+    if (!payload.length) return;
+    onLayoutChange(payload);
+  }, [currentBreakpoint, isEditable, onLayoutChange, persistedBlockIds]);
+
+  const renderBlockCard = (item: BlockItem) => {
     const isPlaceholder = item.kind === "placeholder";
     const block = item.kind === "persisted" ? item.block : undefined;
     const type = item.kind === "persisted" ? item.block.type : item.type;
     const blockId = block?.id;
     const isDeleting = Boolean(blockId && deletingBlockIds?.has(blockId));
-    const isDraggable = sortableProps?.isDraggable;
-    const isOverlay = sortableProps?.isOverlay;
 
     return (
       <div
         className={cn(
-          "group relative h-full rounded-2xl border p-2 shadow-xs min-h-32 flex flex-col transition-shadow",
-          isOverlay ? "bg-white pointer-events-none" : "bg-white",
-          sortableProps?.isDragging ? "border-2 shadow-lg z-20" : "",
-          isDraggable ? "cursor-grab active:cursor-grabbing" : ""
+          "group relative h-full rounded-3xl border p-2 shadow-sm min-h-32 flex flex-col transition-shadow bg-background",
+          isEditable ? "cursor-grab active:cursor-grabbing" : ""
         )}
       >
         {isOwner && blockId ? (
@@ -388,35 +589,6 @@ export const PageBlocks = ({
     );
   };
 
-  const renderGrid = (withSortable: boolean) => (
-    <div className="grid h-full grid-cols-4 auto-rows-[minmax(6rem,1fr)] gap-3">
-      {sortedBlocks.map((item) => {
-        const key = item.kind === "persisted" ? item.block.id : item.id;
-        const layoutStyle = resolveLayoutStyle(key);
-
-        if (withSortable && item.kind === "persisted") {
-          return (
-            <SortableBlockCard
-              key={item.block.id}
-              id={item.block.id}
-              disabled={disableReorder}
-              gridStyle={layoutStyle}
-              onNodeRefChange={(node) => registerBlockNode(item.block.id, node)}
-            >
-              {(sortableProps) => renderBlockCard(item, sortableProps)}
-            </SortableBlockCard>
-          );
-        }
-
-        return (
-          <div key={key} style={layoutStyle} className="h-full">
-            {renderBlockCard(item)}
-          </div>
-        );
-      })}
-    </div>
-  );
-
   if (!items.length) {
     return (
       <Item
@@ -453,100 +625,38 @@ export const PageBlocks = ({
     );
   }
 
-  if (!canSort) {
-    return <section className="space-y-3 w-full">{renderGrid(false)}</section>;
-  }
-
   return (
     <section className="space-y-3 w-full">
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
-      >
-        <SortableContext
-          items={sortableBlocks.map((block) => block.block.id)}
-          strategy={rectSortingStrategy}
-        >
-          {renderGrid(true)}
-        </SortableContext>
-        <DragOverlay dropAnimation={null}>
-          {activeBlock ? (
-            <div
-              style={
-                activeBlockSize
-                  ? {
-                      width: activeBlockSize.width,
-                      height: activeBlockSize.height,
-                    }
-                  : undefined
-              }
-              className="pointer-events-none"
-            >
-              {renderBlockCard(activeBlock, {
-                isDragging: true,
-                isDraggable: false,
-                isOverlay: true,
-              })}
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+      <div className="flex">
+        <div ref={containerRef} className="w-full">
+          <Responsive
+            width={containerWidth}
+            className="w-full"
+            layouts={layouts}
+            breakpoints={GRID_BREAKPOINTS}
+            cols={GRID_RESPONSIVE_COLUMNS}
+            rowHeight={rowHeight}
+            containerPadding={DEFAULT_PADDING}
+            margin={DEFAULT_MARGIN}
+            isDraggable={isEditable}
+            isResizable={false}
+            compactType="vertical"
+            draggableCancel={DRAG_CANCEL_SELECTOR}
+            onLayoutChange={handleLayoutChangeInternal}
+            onDragStop={commitLayoutChange}
+            onResizeStop={commitLayoutChange}
+          >
+            {sortedBlocks.map((item) => {
+              const key = item.kind === "persisted" ? item.block.id : item.id;
+              return (
+                <div key={key} className="w-full h-full">
+                  {renderBlockCard(item)}
+                </div>
+              );
+            })}
+          </Responsive>
+        </div>
+      </div>
     </section>
-  );
-};
-
-type SortableBlockCardProps = {
-  id: string;
-  disabled?: boolean;
-  gridStyle?: CSSProperties;
-  onNodeRefChange?: (node: HTMLElement | null) => void;
-  children: (props: SortableRenderProps) => ReactNode;
-};
-
-const SortableBlockCard = ({
-  id,
-  disabled,
-  gridStyle,
-  onNodeRefChange,
-  children,
-}: SortableBlockCardProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-    isOver,
-  } = useSortable({ id, disabled });
-
-  const setCombinedNodeRef = useCallback(
-    (node: HTMLElement | null) => {
-      setNodeRef(node);
-      onNodeRefChange?.(node);
-    },
-    [onNodeRefChange, setNodeRef]
-  );
-
-  const style: CSSProperties = {
-    ...gridStyle,
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 30 : undefined,
-    opacity: isDragging ? 0 : undefined,
-  };
-
-  return (
-    <div
-      ref={setCombinedNodeRef}
-      style={style}
-      className="h-full"
-      {...(disabled ? {} : attributes)}
-      {...(disabled ? {} : listeners)}
-    >
-      {children({ isDragging, isDraggable: !disabled, isOver })}
-    </div>
   );
 };

@@ -45,7 +45,7 @@ export default function ProfilePageClient({
   );
 
   return (
-    <main className="min-h-dvh flex flex-col relative max-w-7xl mx-auto px-4">
+    <main className="min-h-dvh w-full px-12 lg:px-24 mx-auto flex flex-col max-w-xl container xl:max-w-none">
       <QueryErrorResetBoundary>
         {({ reset }) => (
           <ErrorBoundary onReset={reset} fallback={<div>Error</div>}>
@@ -59,31 +59,39 @@ export default function ProfilePageClient({
               >
                 {({ data: { isOwner, page, blocks } }) => {
                   const profile = { isOwner, page };
-                  
+
                   return (
                     <SaveStatusProvider>
-                      <>
-                        <div className="space-y-6 grow">
-                          {isOwner && <StatusSection />}
-                          <ProfileForm
-                            pageId={page.id}
-                            handle={page.handle}
-                            ownerId={page.owner_id}
-                            isOwner={isOwner}
-                            pageTitle={page.title ?? undefined}
-                            pageDescription={page.description ?? undefined}
-                            pageImageUrl={page.image_url ?? undefined}
-                            supabase={supabase}
-                            userId={userId}
-                          />
-                          <ProfileBlocksClient
-                            initialBlocks={blocks}
-                            handle={page.handle}
-                            pageId={page.id}
-                            isOwner={isOwner}
-                            supabase={supabase}
-                            userId={userId}
-                          />
+                      <div className="w-full flex flex-col gap-8 xl:gap-10">
+                        {isOwner ? (
+                          <div className="flex w-full justify-end">
+                            <StatusSection />
+                          </div>
+                        ) : null}
+                        <div className="flex w-full flex-col gap-10 md:gap-12 xl:flex-row xl:items-start xl:justify-between">
+                          <div className="w-full xl:w-[40%] min-w-0 space-y-6 xl:sticky xl:top-14">
+                            <ProfileForm
+                              pageId={page.id}
+                              handle={page.handle}
+                              ownerId={page.owner_id}
+                              isOwner={isOwner}
+                              pageTitle={page.title ?? undefined}
+                              pageDescription={page.description ?? undefined}
+                              pageImageUrl={page.image_url ?? undefined}
+                              supabase={supabase}
+                              userId={userId}
+                            />
+                          </div>
+                          <div className="w-full flex-1 min-w-0 space-y-6 xl:max-w-[60%] xl:pl-4">
+                            <ProfileBlocksClient
+                              initialBlocks={blocks}
+                              handle={page.handle}
+                              pageId={page.id}
+                              isOwner={isOwner}
+                              supabase={supabase}
+                              userId={userId}
+                            />
+                          </div>
                         </div>
                         <aside className="sticky bottom-5 left-0 bg-background w-fit">
                           <SettingDropdownMenu
@@ -92,7 +100,7 @@ export default function ProfilePageClient({
                             userId={userId}
                           />
                         </aside>
-                      </>
+                      </div>
                     </SaveStatusProvider>
                   );
                 }}

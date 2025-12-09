@@ -6,8 +6,6 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
-import type { DragEndEvent } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
 import type { BlockWithDetails } from "@/types/block";
 import type { BlockType } from "@/config/block-registry";
 import type {
@@ -24,11 +22,7 @@ import { useSaveStatus } from "@/components/profile/save-status-context";
 import { blockQueryOptions } from "@/service/blocks/block-query-options";
 import { profileQueryOptions } from "@/service/profile/profile-query-options";
 import { BlockEnvProvider } from "@/hooks/use-block-env";
-import {
-  buildLayoutPayload,
-  deriveLayoutMap,
-  type BlockLayout,
-} from "@/service/blocks/block-layout";
+import { type BlockLayout } from "@/service/blocks/block-layout";
 import { applyLayoutPatch } from "@/service/blocks/block-normalizer";
 
 type BlockItem =
@@ -135,24 +129,6 @@ export const ProfileBlocksClient = ({
     [setStatus]
   );
 
-  const buildLayoutForBlocks = useCallback(
-    (
-      blocks: BlockWithDetails[],
-      options?: { preservePosition?: boolean }
-    ): BlockLayout[] => {
-      const inputs = blocks.map(({ id, x, y, w, h }) => ({
-        id,
-        x: options?.preservePosition ? x : 0,
-        y: options?.preservePosition ? y : 0,
-        w,
-        h,
-      }));
-      const layoutMap = deriveLayoutMap(inputs);
-      return buildLayoutPayload(inputs, layoutMap);
-    },
-    []
-  );
-
   const applyOptimisticLayout = useCallback(
     (layoutPayload: BlockLayout[]) => {
       queryClient.setQueryData<ProfileBffPayload | undefined>(
@@ -253,44 +229,14 @@ export const ProfileBlocksClient = ({
     [deleteBlockMutation, deletingBlockIds, handle, isOwner, setStatus]
   );
 
-  const handleReorderBlocks = useCallback(
-    ({ active, over }: DragEndEvent) => {
-      if (
-        !isOwner ||
-        !over ||
-        active.id === over.id ||
-        isSavingLayout
-      ) {
-        return;
-      }
-
-      const activeIndex = persistedBlocks.findIndex(
-        (block) => block.id === active.id
-      );
-      const overIndex = persistedBlocks.findIndex(
-        (block) => block.id === over.id
-      );
-
-      if (activeIndex === -1 || overIndex === -1) return;
-
-      const reorderedPersisted = arrayMove(
-        persistedBlocks,
-        activeIndex,
-        overIndex
-      );
-      const layoutPayload = buildLayoutForBlocks(reorderedPersisted);
+  const handleLayoutChange = useCallback(
+    (layoutPayload: BlockLayout[]) => {
+      if (!isOwner || isSavingLayout) return;
 
       applyOptimisticLayout(layoutPayload);
       scheduleLayoutSave(layoutPayload);
     },
-    [
-      applyOptimisticLayout,
-      buildLayoutForBlocks,
-      isOwner,
-      isSavingLayout,
-      persistedBlocks,
-      scheduleLayoutSave,
-    ]
+    [applyOptimisticLayout, isOwner, isSavingLayout, scheduleLayoutSave]
   );
 
   const handleSavePlaceholder = useCallback(
@@ -363,7 +309,7 @@ export const ProfileBlocksClient = ({
           onCancelPlaceholder={handleCancelPlaceholder}
           onDeleteBlock={handleDeleteBlock}
           deletingBlockIds={deletingBlockIds}
-          onReorder={handleReorderBlocks}
+          onLayoutChange={handleLayoutChange}
           disableReorder={isSavingLayout}
         />
       </div>

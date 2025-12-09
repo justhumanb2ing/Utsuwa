@@ -116,7 +116,7 @@ export const TextBlockEditor = ({
       onChange={(e) => setContent(e.target.value)}
       disabled={!isOwner}
       className={cn(
-        "resize-none border-none shadow-none h-full flex-1",
+        "resize-none border-none shadow-none h-full flex-1 text-xl! font-medium rounded-2xl",
         "focus-visible:border-none focus-visible:ring-0 focus-visible:bg-muted transition-colors duration-200",
         "hover:bg-muted",
         className

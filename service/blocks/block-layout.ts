@@ -1,9 +1,29 @@
 import type { BlockWithDetails } from "@/types/block";
 
-export const GRID_COLUMNS = 4;
-export const GRID_ROWS = 4;
+export const GRID_BREAKPOINTS = {
+  xl: 960,
+  lg: 720,
+  md: 560,
+  sm: 360,
+  xs: 240,
+} as const;
+
+export const GRID_RESPONSIVE_COLUMNS = {
+  xl: 4,
+  lg: 4,
+  md: 3,
+  sm: 2,
+  xs: 2,
+} as const;
+
+export type GridBreakpoint = keyof typeof GRID_BREAKPOINTS;
+
+export const CANONICAL_BREAKPOINT: GridBreakpoint = "lg";
+export const GRID_COLUMNS = GRID_RESPONSIVE_COLUMNS[CANONICAL_BREAKPOINT];
+export const GRID_ROWS = 50;
+export const GRID_ROW_HEIGHT = 300;
 export const MIN_SIZE = 1;
-export const MAX_SIZE = 2;
+export const MAX_SIZE = 4;
 
 export type LayoutInput = Pick<BlockWithDetails, "id" | "x" | "y" | "w" | "h">;
 
