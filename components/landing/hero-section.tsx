@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { landingCopy } from "@/config/landing-copy";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
@@ -105,6 +106,7 @@ export default function HeroSection() {
           className="flex flex-col sm:flex-row gap-4"
         >
           <Button
+            asChild
             size={"icon-lg"}
             className={cn(
               "w-3xs h-12 text-sm bg-brand-ink text-white rounded-xl font-bold transition-colors flex items-center gap-2",
@@ -112,8 +114,10 @@ export default function HeroSection() {
               "hover:bg-brand-ink-hover"
             )}
           >
-            {hero.cta}
-            <ArrowRight className="w-5 h-5" />
+            <Link href="/go/profile" className="flex items-center gap-2">
+              {hero.cta}
+              <ArrowRight className="w-5 h-5" />
+            </Link>
           </Button>
         </motion.div>
 

@@ -3,6 +3,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import Image from "next/image";
+import Link from "next/link";
 import { landingCopy } from "@/config/landing-copy";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
@@ -151,6 +152,7 @@ export default function FeatureSection() {
               {secondary.description}
             </p>
             <Button
+              asChild
               size={"icon-lg"}
               className={cn(
                 "w-3xs h-12 text-base bg-brand-poppy text-white rounded-xl font-bold transition-colors flex items-center gap-2",
@@ -158,7 +160,7 @@ export default function FeatureSection() {
                 "hover:bg-brand-poppy-hover"
               )}
             >
-              {secondary.cta}
+              <Link href="/go/profile">{secondary.cta}</Link>
             </Button>
           </motion.div>
         </div>

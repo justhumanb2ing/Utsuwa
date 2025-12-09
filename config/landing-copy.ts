@@ -80,7 +80,7 @@ export const landingCopy: LandingCopy = {
     cta: "Create your handle",
     copyright: "© 2025, Designed by justhumanb2ing",
     links: [
-      { href: "/sign-in", label: "Sign in" },
+      { href: "/go/profile", label: "Sign in" },
       { href: "#", label: "Privacy" },
       { href: "#", label: "Terms" },
     ],

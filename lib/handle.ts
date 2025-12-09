@@ -76,3 +76,27 @@ export const handleRules = {
   pattern: HANDLE_PATTERN,
   reserved: RESERVED_HANDLES,
 } as const;
+
+/**
+ * 다양한 형태로 들어오는 핸들 값을 정규화한다.
+ * - 문자열: 기존 normalizeHandle 적용
+ * - 배열: 첫 번째 값 사용
+ * - 객체: handle, slug 필드를 우선 사용
+ */
+export const normalizeHandleValue = (value: unknown): string | null => {
+  if (Array.isArray(value)) {
+    return normalizeHandleValue(value[0]);
+  }
+
+  if (value && typeof value === "object") {
+    const { handle, slug } = value as { handle?: unknown; slug?: unknown };
+    return normalizeHandleValue(handle ?? slug ?? null);
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = normalizeHandle(value);
+  return normalized.length > 0 ? normalized : null;
+};

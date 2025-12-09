@@ -28,14 +28,18 @@ export default function FooterSection() {
           ))}
         </motion.h2>
 
-        <motion.button
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="px-12 py-5 bg-white text-black text-xl font-bold rounded-full hover:scale-105 transition-transform"
         >
-          {footer.cta}
-        </motion.button>
+          <Link
+            href="/go/profile"
+            className="inline-flex px-12 py-5 bg-white text-black text-xl font-bold rounded-full hover:scale-105 transition-transform"
+          >
+            {footer.cta}
+          </Link>
+        </motion.div>
 
         <div className="mt-20 flex flex-col md:flex-row items-center justify-between w-full text-neutral-400 text-sm">
           <div className="mb-4 md:mb-0">{footer.copyright}</div>

@@ -18,14 +18,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createBrowserSupabaseClient } from "@/config/supabase-browser";
 import { Item } from "@/components/ui/item";
 import { pageQueryOptions } from "@/service/pages/page-query-options";
+import { normalizeHandle } from "@/lib/handle";
 import { Button } from "../ui/button";
 
 type HeaderClientProps = {
   userId: string | null;
 };
-
-const normalizeHandle = (rawHandle: string): string =>
-  rawHandle.trim().replace(/^@+/, "");
 
 const buildProfilePath = (handle: string): string => {
   const normalized = normalizeHandle(handle);
