@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useLinkBlockEditor } from "@/hooks/use-link-block-editor";
 import { useTextBlockEditor } from "@/hooks/use-text-block-editor";
-import { cn } from "@/lib/utils";
 import type { LinkBlockParams, TextBlockParams } from "@/types/block-editor";
+import { cn } from "@/lib/utils";
 
 type DragGuardHandlers = Pick<
   HTMLAttributes<HTMLElement>,
@@ -27,7 +27,6 @@ export const LinkBlockEditor = ({
   isOwner,
   data,
   onSavePlaceholder,
-  onCancelPlaceholder,
   className,
   dragGuardHandlers,
 }: LinkBlockEditorProps) => {
@@ -39,8 +38,6 @@ export const LinkBlockEditor = ({
     data,
     onSavePlaceholder,
   });
-
-  const isPlaceholder = mode === "placeholder";
 
   return (
     <div className={cn("space-y-2 h-full flex flex-col", className)}>
@@ -69,14 +66,6 @@ export const LinkBlockEditor = ({
         )}
         {...dragGuardHandlers}
       />
-
-      {isPlaceholder && (
-        <div className="flex justify-end mt-auto">
-          <Button size="sm" variant="ghost" onClick={onCancelPlaceholder}>
-            취소
-          </Button>
-        </div>
-      )}
     </div>
   );
 };
@@ -94,7 +83,6 @@ export const TextBlockEditor = ({
   isOwner,
   data,
   onSavePlaceholder,
-  onCancelPlaceholder,
   className,
   dragGuardHandlers,
 }: TextBlockEditorProps) => {
@@ -106,8 +94,6 @@ export const TextBlockEditor = ({
     data,
     onSavePlaceholder,
   });
-
-  const isPlaceholder = mode === "placeholder";
 
   return (
     <Textarea

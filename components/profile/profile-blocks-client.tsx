@@ -17,6 +17,10 @@ import type {
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { BlockRegistryPanel } from "@/components/layout/block-registry";
 import { PageBlocks } from "@/components/profile/page-blocks";
+import type {
+  PlaceholderBlock,
+  ProfileBlockItem,
+} from "@/components/profile/types/block-item";
 import { toastManager } from "@/components/ui/toast";
 import { useSaveStatus } from "@/components/profile/save-status-context";
 import { blockQueryOptions } from "@/service/blocks/block-query-options";
@@ -24,10 +28,6 @@ import { profileQueryOptions } from "@/service/profile/profile-query-options";
 import { BlockEnvProvider } from "@/hooks/use-block-env";
 import { type BlockLayout } from "@/service/blocks/block-layout";
 import { applyLayoutPatch } from "@/service/blocks/block-normalizer";
-
-type BlockItem =
-  | { kind: "persisted"; block: BlockWithDetails }
-  | { kind: "placeholder"; id: string; type: BlockType };
 
 type ProfileBlocksClientProps = ProfileOwnership & {
   initialBlocks: BlockWithDetails[];
@@ -44,9 +44,7 @@ export const ProfileBlocksClient = ({
   supabase,
   userId,
 }: ProfileBlocksClientProps) => {
-  const [placeholders, setPlaceholders] = useState<
-    { kind: "placeholder"; id: string; type: BlockType }[]
-  >([]);
+  const [placeholders, setPlaceholders] = useState<PlaceholderBlock[]>([]);
   const [deletingBlockIds, setDeletingBlockIds] = useState<Set<string>>(
     () => new Set()
   );
@@ -282,7 +280,7 @@ export const ProfileBlocksClient = ({
     [createBlockMutation, handle, isOwner, pageId, placeholders]
   );
 
-  const items: BlockItem[] = [
+  const items: ProfileBlockItem[] = [
     ...persistedBlocks.map((block) => ({ kind: "persisted" as const, block })),
     ...placeholders,
   ];

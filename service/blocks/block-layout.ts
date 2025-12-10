@@ -1,23 +1,25 @@
+import type { Layout, Layouts } from "react-grid-layout";
 import type { BlockWithDetails } from "@/types/block";
 
 export const GRID_BREAKPOINTS = {
-  xl: 1280,
-  md: 0,
+  lg: 700,
+  xxs: 0,
 } as const;
 
 export const GRID_RESPONSIVE_COLUMNS = {
-  xl: 4,
-  md: 2,
+  lg: 4,
+  xxs: 2,
 } as const;
 
 export type GridBreakpoint = keyof typeof GRID_BREAKPOINTS;
 
-export const CANONICAL_BREAKPOINT: GridBreakpoint = "xl";
+export const CANONICAL_BREAKPOINT: GridBreakpoint = "lg";
 export const GRID_COLUMNS = GRID_RESPONSIVE_COLUMNS[CANONICAL_BREAKPOINT];
 export const GRID_ROWS = 175;
 export const GRID_ROW_HEIGHT = 175;
+export const GRID_MARGIN: [number, number] = [26, 26];
 export const MIN_SIZE = 1;
-export const MAX_SIZE = 4;
+export const MAX_SIZE = 2;
 
 export type LayoutInput = Pick<BlockWithDetails, "id" | "x" | "y" | "w" | "h">;
 
@@ -29,156 +31,136 @@ export type BlockLayout = {
   h: number;
 };
 
-type OccupiedGrid = boolean[][];
+type LayoutSource =
+  | Layout
+  | LayoutInput
+  | {
+      id: string;
+      x?: number | null;
+      y?: number | null;
+      w?: number | null;
+      h?: number | null;
+    };
 
-const clampSize = (value?: number | null): number => {
-  if (typeof value !== "number" || Number.isNaN(value)) return MIN_SIZE;
-  return Math.min(Math.max(value, MIN_SIZE), MAX_SIZE);
+const BREAKPOINT_KEYS = Object.keys(
+  GRID_RESPONSIVE_COLUMNS
+) as GridBreakpoint[];
+
+const clampSpan = (value: number | null | undefined, max: number): number => {
+  const normalized =
+    typeof value === "number" && Number.isFinite(value)
+      ? Math.max(Math.round(value), MIN_SIZE)
+      : MIN_SIZE;
+  return Math.min(normalized, Math.max(MIN_SIZE, max));
 };
 
-const clampCoordinate = (
-  value: number | null | undefined,
-  maxIndex: number
-): number => {
-  if (typeof value !== "number" || Number.isNaN(value)) return 0;
-  return Math.min(Math.max(value, 0), maxIndex);
+const clampCoordinate = (value: number | null | undefined, max: number) => {
+  const normalized =
+    typeof value === "number" && Number.isFinite(value)
+      ? Math.max(Math.floor(value), 0)
+      : 0;
+  return Math.min(normalized, Math.max(0, max));
 };
 
-const createOccupiedGrid = (): OccupiedGrid =>
-  Array.from({ length: GRID_ROWS }, () =>
-    Array.from({ length: GRID_COLUMNS }, () => false)
+const isLayoutEntry = (source: LayoutSource): source is Layout =>
+  "i" in source;
+
+const toLayoutId = (source: LayoutSource): string =>
+  isLayoutEntry(source) ? source.i : String(source.id);
+
+const normalizeLayoutEntry = (
+  source: LayoutSource,
+  columns: number,
+  fallbackIndex: number,
+  isEditable: boolean
+): Layout => {
+  const width = clampSpan(
+    isLayoutEntry(source) ? source.w : source.w,
+    Math.min(columns, MAX_SIZE)
+  );
+  const height = clampSpan(
+    isLayoutEntry(source) ? source.h : source.h,
+    MAX_SIZE
   );
 
-const canPlace = (
-  grid: OccupiedGrid,
-  x: number,
-  y: number,
-  w: number,
-  h: number
-): boolean => {
-  if (x < 0 || y < 0) return false;
-  if (x + w > GRID_COLUMNS) return false;
-  if (y + h > GRID_ROWS) return false;
+  const baseX = isLayoutEntry(source) ? source.x : source.y;
+  const baseY = isLayoutEntry(source) ? source.y : source.x ?? fallbackIndex;
 
-  for (let row = y; row < y + h; row += 1) {
-    for (let col = x; col < x + w; col += 1) {
-      if (grid[row]?.[col]) return false;
-    }
-  }
+  const maxX = Math.max(columns - width, 0);
+  const maxY = Math.max(GRID_ROWS - height, 0);
 
-  return true;
-};
-
-const occupy = (
-  grid: OccupiedGrid,
-  x: number,
-  y: number,
-  w: number,
-  h: number
-) => {
-  for (let row = y; row < y + h; row += 1) {
-    for (let col = x; col < x + w; col += 1) {
-      if (grid[row] && typeof grid[row][col] !== "undefined") {
-        grid[row][col] = true;
-      }
-    }
-  }
-};
-
-const placeWithPreference = (
-  grid: OccupiedGrid,
-  candidate: LayoutInput
-): BlockLayout | null => {
-  const w = clampSize(candidate.w);
-  const h = clampSize(candidate.h);
-  const x = clampCoordinate(candidate.x, GRID_COLUMNS - 1);
-  const y = clampCoordinate(candidate.y, GRID_ROWS - 1);
-
-  if (canPlace(grid, x, y, w, h)) {
-    return { id: candidate.id, x, y, w, h };
-  }
-
-  return null;
-};
-
-const placeFirstFit = (
-  grid: OccupiedGrid,
-  candidate: LayoutInput
-): BlockLayout | null => {
-  const w = clampSize(candidate.w);
-  const h = clampSize(candidate.h);
-
-  for (let row = 0; row < GRID_ROWS; row += 1) {
-    for (let col = 0; col < GRID_COLUMNS; col += 1) {
-      if (canPlace(grid, col, row, w, h)) {
-        return { id: candidate.id, x: col, y: row, w, h };
-      }
-    }
-  }
-
-  // 최후 수단: 1x1로 축소해서라도 배치
-  for (let row = 0; row < GRID_ROWS; row += 1) {
-    for (let col = 0; col < GRID_COLUMNS; col += 1) {
-      if (canPlace(grid, col, row, MIN_SIZE, MIN_SIZE)) {
-        return { id: candidate.id, x: col, y: row, w: MIN_SIZE, h: MIN_SIZE };
-      }
-    }
-  }
-
-  return null;
+  return {
+    i: toLayoutId(source),
+    x: clampCoordinate(baseX, maxX),
+    y: clampCoordinate(baseY, maxY),
+    w: width,
+    h: height,
+    isDraggable: isEditable,
+    isResizable: false,
+    static: !isEditable,
+  };
 };
 
 /**
- * 4×4 Bento 그리드에서 블록 위치를 계산한다.
- * - 우선 기존 x,y가 유효하고 비어 있으면 그 위치를 사용한다.
- * - 충돌/경계 위반 시 첫 번째 가용 슬롯에 배치한다.
- * - w,h는 1~2로 클램프한다.
+ * Block 레이아웃과 기존 Layout을 입력으로 받아 각 브레이크포인트별 Layouts를 구성한다.
+ * - 기존 Layout이 있으면 우선 사용하고, 없으면 Block 좌표(x=행, y=열)를 RGL 좌표(x=열, y=행)로 스왑한다.
  */
-export const deriveLayoutMap = (
-  blocks: LayoutInput[]
-): Map<string, BlockLayout> => {
-  const occupied = createOccupiedGrid();
-  const layout = new Map<string, BlockLayout>();
-  const fallbackQueue: LayoutInput[] = [];
+export const buildResponsiveLayouts = (
+  items: LayoutInput[],
+  options?: { existingLayouts?: Layouts; isEditable?: boolean }
+): Layouts => {
+  const isEditable = options?.isEditable ?? false;
+  const existingLayouts = options?.existingLayouts ?? {};
+  const nextLayouts: Layouts = {};
 
-  blocks.forEach((block) => {
-    const preferred = placeWithPreference(occupied, block);
-    if (preferred) {
-      layout.set(block.id, preferred);
-      occupy(occupied, preferred.x, preferred.y, preferred.w, preferred.h);
-    } else {
-      fallbackQueue.push(block);
-    }
+  BREAKPOINT_KEYS.forEach((breakpoint) => {
+    const columns = GRID_RESPONSIVE_COLUMNS[breakpoint];
+    const existing = existingLayouts[breakpoint] ?? [];
+    const existingMap = new Map(existing.map((entry) => [entry.i, entry]));
+
+    nextLayouts[breakpoint] = items.map((item, index) => {
+      const fallback = existingMap.get(item.id) ?? item;
+      return normalizeLayoutEntry(fallback, columns, index, isEditable);
+    });
   });
 
-  fallbackQueue.forEach((block) => {
-    const placed = placeFirstFit(occupied, block);
-    if (placed) {
-      layout.set(block.id, placed);
-      occupy(occupied, placed.x, placed.y, placed.w, placed.h);
-    }
-  });
-
-  return layout;
+  return nextLayouts;
 };
 
-export const buildLayoutPayload = (
-  blocks: LayoutInput[],
-  layoutMap: Map<string, BlockLayout>
-): BlockLayout[] =>
-  blocks.map((block) => {
-    const placement = layoutMap.get(block.id);
-    if (!placement) {
+export const createLayoutLookup = (
+  layouts: Layouts,
+  breakpoint: GridBreakpoint
+): Map<string, Layout> =>
+  new Map((layouts[breakpoint] ?? []).map((entry) => [entry.i, entry]));
+
+/**
+ * RGL Layouts를 서버로 전송할 BlockLayout payload로 변환한다.
+ * - DB는 x=행, y=열을 사용하므로 RGL 좌표(x=열, y=행)를 반대로 매핑한다.
+ */
+export const extractLayoutPayload = (
+  layouts: Layouts,
+  persistedIds: Set<string>
+): BlockLayout[] => {
+  const canonicalLayout = layouts[CANONICAL_BREAKPOINT] ?? [];
+  const columns = GRID_RESPONSIVE_COLUMNS[CANONICAL_BREAKPOINT];
+
+  return canonicalLayout
+    .filter((item) => persistedIds.has(item.i))
+    .map((item) => {
+      const width = clampSpan(item.w, Math.min(columns, MAX_SIZE));
+      const height = clampSpan(item.h, MAX_SIZE);
+      const maxX = Math.max(GRID_ROWS - height, 0);
+      const maxY = Math.max(columns - width, 0);
+
       return {
-        id: block.id,
-        x: 0,
-        y: 0,
-        w: clampSize(block.w),
-        h: clampSize(block.h),
+        id: item.i,
+        x: clampCoordinate(item.y, maxX),
+        y: clampCoordinate(item.x, maxY),
+        w: width,
+        h: height,
       };
-    }
-    return placement;
-  });
+    });
+};
 
 export const sortByLayout = (layouts: BlockLayout[]): BlockLayout[] =>
   [...layouts].sort((a, b) => {

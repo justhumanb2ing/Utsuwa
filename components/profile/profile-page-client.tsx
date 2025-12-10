@@ -45,7 +45,7 @@ export default function ProfilePageClient({
   );
 
   return (
-    <main className="min-h-dvh w-full flex flex-col mx-auto max-w-lg xl:max-w-none">
+    <main className="min-h-dvh w-full flex flex-col bg-background">
       <SaveStatusProvider>
         <QueryErrorResetBoundary>
           {({ reset }) => (
@@ -62,28 +62,36 @@ export default function ProfilePageClient({
                     const profile = { isOwner, page };
 
                     return (
-                      // <div className="w-full flex flex-col gap-8 xl:gap-12">
-                      <div>
-                        {isOwner ? (
-                          <div className="flex w-full justify-end">
-                            <StatusSection />
-                          </div>
-                        ) : null}
-                        <div className="max-w-lg xl:max-w-none xl:px-24 flex flex-col xl:flex-row items-start justify-between gap-8 px-8">
-                          <div className="w-full min-w-0 space-y-6 max-w-lg xl:max-w-lg shrink">
-                            <ProfileForm
-                              pageId={page.id}
-                              handle={page.handle}
-                              ownerId={page.owner_id}
-                              isOwner={isOwner}
-                              pageTitle={page.title ?? undefined}
-                              pageDescription={page.description ?? undefined}
-                              pageImageUrl={page.image_url ?? undefined}
-                              supabase={supabase}
-                              userId={userId}
-                            />
-                          </div>
-                          <div className="max-w-lg xl:max-w-none xl:w-[760px] shrink-0 transition-all duration-300 xl:mx-0">
+                      <div className="w-full px-4 md:px-6 xl:px-8 py-6  relative">
+                        <div className="max-w-lg xl:max-w-[1400px] mx-auto flex flex-col xl:flex-row items-start justify-center gap-8">
+                          <section className="w-full xl:w-7xl flex flex-col gap-6 shrink">
+                            {isOwner ? (
+                              <div className="flex w-full justify-end">
+                                <StatusSection />
+                              </div>
+                            ) : null}
+                            <div className="px-12 sm:px-16">
+                              <ProfileForm
+                                pageId={page.id}
+                                handle={page.handle}
+                                ownerId={page.owner_id}
+                                isOwner={isOwner}
+                                pageTitle={page.title ?? undefined}
+                                pageDescription={page.description ?? undefined}
+                                pageImageUrl={page.image_url ?? undefined}
+                                supabase={supabase}
+                                userId={userId}
+                              />
+                            </div>
+                            <div className="fixed bottom-10 w-full">
+                              <SettingDropdownMenu
+                                profile={profile}
+                                supabase={supabase}
+                                userId={userId}
+                              />
+                            </div>
+                          </section>
+                          <section className="w-[420px] xl:w-[800px] shrink-0 transition-all duration-300 mx-auto xl:mx-0">
                             <ProfileBlocksClient
                               initialBlocks={blocks}
                               handle={page.handle}
@@ -92,15 +100,8 @@ export default function ProfilePageClient({
                               supabase={supabase}
                               userId={userId}
                             />
-                          </div>
+                          </section>
                         </div>
-                        <aside className="sticky bottom-5 left-0 bg-background w-fit">
-                          <SettingDropdownMenu
-                            profile={profile}
-                            supabase={supabase}
-                            userId={userId}
-                          />
-                        </aside>
                       </div>
                     );
                   }}
