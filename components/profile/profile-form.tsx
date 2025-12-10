@@ -1,7 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useId, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
@@ -39,6 +45,8 @@ export function ProfileForm({
   userId,
 }: ProfileFormProps) {
   const fileInputId = useId();
+  const titleRef = useRef<HTMLParagraphElement | null>(null);
+  const descriptionRef = useRef<HTMLParagraphElement | null>(null);
   const { form, preview, onSubmit } = usePageForm({
     pageId,
     handle,
@@ -50,6 +58,26 @@ export function ProfileForm({
     supabase,
     userId,
   });
+  const titleValue = form.watch("title") ?? "";
+  const descriptionValue = form.watch("description") ?? "";
+
+  useEffect(() => {
+    const element = titleRef.current;
+    if (!element) return;
+    const currentText = element.textContent ?? "";
+    if (currentText !== titleValue) {
+      element.textContent = titleValue;
+    }
+  }, [titleValue]);
+
+  useEffect(() => {
+    const element = descriptionRef.current;
+    if (!element) return;
+    const currentText = element.textContent ?? "";
+    if (currentText !== descriptionValue) {
+      element.textContent = descriptionValue;
+    }
+  }, [descriptionValue]);
 
   return (
     <Form {...form}>
@@ -145,10 +173,11 @@ export function ProfileForm({
                       event.currentTarget.blur();
                     }
                   }}
-                  ref={field.ref}
-                >
-                  {field.value}
-                </p>
+                  ref={(node) => {
+                    field.ref(node);
+                    titleRef.current = node;
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -190,10 +219,11 @@ export function ProfileForm({
                       field.onChange(nextValue);
                     }
                   }}
-                  ref={field.ref}
-                >
-                  {field.value}
-                </p>
+                  ref={(node) => {
+                    field.ref(node);
+                    descriptionRef.current = node;
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -62,8 +62,8 @@ export default function ProfilePageClient({
                     const profile = { isOwner, page };
 
                     return (
-                      <div className="w-full px-4 md:px-6 xl:px-8 py-6  relative">
-                        <div className="max-w-lg xl:max-w-[1400px] mx-auto flex flex-col xl:flex-row items-start justify-center gap-8">
+                      <div className="w-full px-4 md:px-6 xl:px-8 py-6 relative">
+                        <div className="max-w-lg xl:max-w-[1600px] mx-auto flex flex-col xl:flex-row items-start justify-center gap-8">
                           <section className="w-full xl:w-7xl flex flex-col gap-6 shrink">
                             {isOwner ? (
                               <div className="flex w-full justify-end">
