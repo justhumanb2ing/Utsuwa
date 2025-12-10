@@ -1,10 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useId } from "react";
+import { useId, type FormEvent, type KeyboardEvent } from "react";
 import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
-import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
 import {
   Form,
@@ -112,15 +111,44 @@ export function ProfileForm({
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <Input
-                  placeholder="페이지 제목"
+                <p
+                  role="textbox"
+                  aria-label="페이지 제목"
+                  aria-placeholder="페이지 제목"
+                  contentEditable={isOwner}
+                  suppressContentEditableWarning
                   className={cn(
-                    "w-full min-w-0 rounded-none border-0 shadow-none px-3 py-2 text-3xl md:text-4xl xl:text-5xl! font-bold! text-zinc-900 h-fit! p-0 wrap-break-word whitespace-normal",
-                    "focus:outline-none focus:ring-0 focus-visible:ring-0"
+                    "w-full min-w-0 rounded-none border-0 shadow-none px-2 py-2 text-3xl md:text-4xl xl:text-5xl! font-bold! text-zinc-900 h-fit! wrap-break-word",
+                    "truncate sm:whitespace-normal! sm:line-clamp-2 md:line-clamp-3 focus:line-clamp-none focus:whitespace-normal! focus:overflow-visible",
+                    "focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:overflow-visible",
+                    "empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:block",
+                    !isOwner && "cursor-default select-text",
+                    isOwner && "cursor-text"
                   )}
-                  readOnly={!isOwner}
-                  {...field}
-                />
+                  data-placeholder="페이지 제목"
+                  onInput={(event: FormEvent<HTMLParagraphElement>) => {
+                    const nextValue = event.currentTarget.textContent ?? "";
+                    if (nextValue !== field.value) {
+                      field.onChange(nextValue);
+                    }
+                  }}
+                  onBlur={(event) => {
+                    field.onBlur();
+                    const nextValue = event.currentTarget.textContent ?? "";
+                    if (nextValue !== field.value) {
+                      field.onChange(nextValue);
+                    }
+                  }}
+                  onKeyDown={(event: KeyboardEvent<HTMLParagraphElement>) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      event.currentTarget.blur();
+                    }
+                  }}
+                  ref={field.ref}
+                >
+                  {field.value}
+                </p>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -133,15 +161,39 @@ export function ProfileForm({
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <Textarea
-                  placeholder="페이지 설명을 입력하세요"
+                <p
+                  role="textbox"
+                  aria-label="페이지 설명"
+                  aria-placeholder="페이지 설명을 입력하세요"
+                  contentEditable={isOwner}
+                  suppressContentEditableWarning
                   className={cn(
-                    "w-full min-w-0 border-none rounded-none shadow-none p-0 text-zinc-900 min-h-[120px] resize-none wrap-break-word whitespace-pre-wrap",
-                    "focus-visible:outline-none focus-visible:ring-0 text-base! xl:text-lg!"
+                    "w-full min-w-0 border-none rounded-none shadow-none px-2 text-zinc-900 min-h-[120px] resize-none wrap-break-word whitespace-pre-wrap",
+                    "truncate whitespace-pre-wrap!",
+                    "line-clamp-4 sm:line-clamp-6 md:line-clamp-8 focus:line-clamp-none focus:overflow-visible focus:whitespace-pre-wrap!",
+                    "focus-visible:outline-none focus-visible:ring-0 text-base! xl:text-lg!",
+                    "empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:block",
+                    !isOwner && "cursor-default select-text",
+                    isOwner && "cursor-text"
                   )}
-                  readOnly={!isOwner}
-                  {...field}
-                />
+                  data-placeholder="페이지 설명을 입력하세요"
+                  onInput={(event: FormEvent<HTMLParagraphElement>) => {
+                    const nextValue = event.currentTarget.textContent ?? "";
+                    if (nextValue !== field.value) {
+                      field.onChange(nextValue);
+                    }
+                  }}
+                  onBlur={(event) => {
+                    field.onBlur();
+                    const nextValue = event.currentTarget.textContent ?? "";
+                    if (nextValue !== field.value) {
+                      field.onChange(nextValue);
+                    }
+                  }}
+                  ref={field.ref}
+                >
+                  {field.value}
+                </p>
               </FormControl>
               <FormMessage />
             </FormItem>

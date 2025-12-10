@@ -70,7 +70,7 @@ export default function ProfilePageClient({
                                 <StatusSection />
                               </div>
                             ) : null}
-                            <div className="px-12 sm:px-16">
+                            <div className="px-10 sm:px-16">
                               <ProfileForm
                                 pageId={page.id}
                                 handle={page.handle}
