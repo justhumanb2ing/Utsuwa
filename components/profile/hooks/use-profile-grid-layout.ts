@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Layout, Layouts } from "react-grid-layout";
 import {
   CANONICAL_BREAKPOINT,
@@ -33,6 +33,8 @@ export const useProfileGridLayout = ({
   );
   const [currentBreakpoint, setCurrentBreakpoint] =
     useState<GridBreakpoint>(CANONICAL_BREAKPOINT);
+  const currentBreakpointRef = useRef<GridBreakpoint>(CANONICAL_BREAKPOINT);
+  const isBreakpointTransitionRef = useRef(false);
 
   const publishLayoutPayload = useCallback(
     (nextLayouts: Layouts) => {
@@ -53,6 +55,8 @@ export const useProfileGridLayout = ({
         existingLayouts: previous,
       })
     );
+    // 외부에서 layoutInputs가 변경되면 브레이크포인트 전환 상태를 초기화
+    isBreakpointTransitionRef.current = false;
   }, [isEditable, layoutInputs]);
 
   const normalizeAndSetLayouts = useCallback(
@@ -71,54 +75,72 @@ export const useProfileGridLayout = ({
   );
 
   const handleLayoutChange = useCallback(
-    (_currentLayout: Layout[], allLayouts: Layouts) => {
-      const nextInputs = projectLayoutsToCanonicalInputs(
-        allLayouts,
-        currentBreakpoint
+    (currentLayout: Layout[], allLayouts: Layouts) => {
+      const breakpoint = currentBreakpointRef.current;
+
+      setLayouts((previous) =>
+        buildResponsiveLayouts(currentLayoutInputs, {
+          isEditable,
+          existingLayouts: {
+            ...previous,
+            ...allLayouts,
+            [breakpoint]: currentLayout,
+          },
+        })
       );
-      normalizeAndSetLayouts(allLayouts, nextInputs);
+
+      if (isBreakpointTransitionRef.current) {
+        // 브레이크포인트 이동 직후 자동으로 호출되는 onLayoutChange는
+        // 캐논컬 입력을 덮어쓰지 않고 레이아웃 스냅샷만 동기화한다.
+        isBreakpointTransitionRef.current = false;
+        return;
+      }
+
+      // 편집 모드에서도 브레이크포인트 전환/컴팩션에 의해 호출되는 onLayoutChange가
+      // canonical 입력을 덮어쓰지 않도록, 여기서는 레이아웃 상태만 동기화한다.
     },
-    [currentBreakpoint, normalizeAndSetLayouts]
+    [currentLayoutInputs, isEditable]
   );
 
   const handleLayoutCommit = useCallback(
     (currentLayout?: Layout[], allLayouts?: Layouts) => {
+      const breakpoint = currentBreakpointRef.current;
       const mergedLayouts: Layouts | undefined = allLayouts
         ? { ...allLayouts }
         : undefined;
 
-      if (mergedLayouts && currentBreakpoint && currentLayout) {
-        mergedLayouts[currentBreakpoint] = currentLayout;
+      if (mergedLayouts && breakpoint && currentLayout) {
+        mergedLayouts[breakpoint] = currentLayout;
       }
 
       const inputs = projectLayoutsToCanonicalInputs(
         mergedLayouts ?? layouts,
-        currentBreakpoint
+        breakpoint
       );
       const normalized = normalizeAndSetLayouts(mergedLayouts, inputs);
       publishLayoutPayload(normalized);
     },
-    [currentBreakpoint, layouts, normalizeAndSetLayouts, publishLayoutPayload]
+    [layouts, normalizeAndSetLayouts, publishLayoutPayload]
   );
 
   const handleResize = useCallback(
     (id: string, size: ResizeSize) => {
+      const breakpoint = currentBreakpointRef.current;
       const nextLayouts: Layouts = { ...layouts };
       const current = layouts[currentBreakpoint] ?? [];
       const updated = current.map((entry) =>
         entry.i === id ? { ...entry, w: size.width, h: size.height } : entry
       );
-      nextLayouts[currentBreakpoint] = updated;
+      nextLayouts[breakpoint] = updated;
 
       const nextInputs = projectLayoutsToCanonicalInputs(
         nextLayouts,
-        currentBreakpoint
+        breakpoint
       );
       const normalized = normalizeAndSetLayouts(nextLayouts, nextInputs);
       publishLayoutPayload(normalized);
     },
     [
-      currentBreakpoint,
       isEditable,
       layouts,
       publishLayoutPayload,
@@ -127,7 +149,10 @@ export const useProfileGridLayout = ({
   );
 
   const handleBreakpointChange = useCallback((next: string) => {
-    setCurrentBreakpoint(next as GridBreakpoint);
+    const normalized = next as GridBreakpoint;
+    currentBreakpointRef.current = normalized;
+    isBreakpointTransitionRef.current = true;
+    setCurrentBreakpoint(normalized);
   }, []);
 
   const layoutLookup = useMemo(
