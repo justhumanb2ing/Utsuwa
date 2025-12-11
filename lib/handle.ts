@@ -100,3 +100,11 @@ export const normalizeHandleValue = (value: unknown): string | null => {
   const normalized = normalizeHandle(value);
   return normalized.length > 0 ? normalized : null;
 };
+
+/**
+ * 페이지 핸들로 경로를 정규화한다.
+ */
+export const buildProfilePath = (handle: string) => {
+  const normalized = normalizeHandle(handle);
+  return normalized ? `/profile/@${normalized}` : "/profile";
+};

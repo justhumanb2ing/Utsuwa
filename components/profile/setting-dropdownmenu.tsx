@@ -6,6 +6,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { ProfileBffPayload } from "@/types/profile";
@@ -22,6 +23,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
+import { useClerk } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
 
 type SettingDropdownMenuProps = {
   profile: Pick<ProfileBffPayload, "isOwner" | "page">;
@@ -35,6 +38,8 @@ export function SettingDropdownMenu({
   userId,
 }: SettingDropdownMenuProps) {
   const { isOwner, page } = profile;
+  const { signOut } = useClerk();
+  const pathname = usePathname();
 
   if (!isOwner) return null;
 
@@ -78,6 +83,15 @@ export function SettingDropdownMenu({
               supabase={supabase}
               userId={userId}
             />
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator className="mx-1"/>
+
+          <DropdownMenuItem
+            onClick={() => signOut({ redirectUrl: pathname })}
+            className="text-xs flex-row justify-between items-center gap-1 text-brand-poppy focus:text-brand-poppy"
+          >
+            <div className="py-1">Logout</div>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

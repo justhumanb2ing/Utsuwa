@@ -17,7 +17,7 @@ import {
   type TogglePageVisibilityResult,
 } from "./toggle-page-visibility";
 import { profileQueryOptions } from "../profile/profile-query-options";
-import { normalizeHandle } from "@/lib/handle";
+import { buildProfilePath, normalizeHandle } from "@/lib/handle";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ProfileBffPayload } from "@/types/profile";
 import { buildHandleCandidates } from "../profile/build-handle-candidates";
@@ -94,6 +94,13 @@ export const pageQueryOptions = {
           ? fetchPagesByOwnerId({ ownerId, supabase, userId })
           : Promise.resolve([]),
       enabled: !!ownerId,
+      select: (pages) =>
+        pages.map((page) => {
+          const href = buildProfilePath(page.handle);
+          const label = page.handle;
+
+          return { id: page.id, href, label };
+        }),
     }),
   update: (options: UpdateOptions) =>
     mutationOptions<

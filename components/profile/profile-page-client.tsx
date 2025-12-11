@@ -5,7 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import { profileQueryOptions } from "@/service/profile/profile-query-options";
 import { QueryErrorResetBoundary } from "@tanstack/react-query";
 import { ErrorBoundary, Suspense } from "@suspensive/react";
-import { SuspenseQuery } from "@suspensive/react-query";
+import { SuspenseQueries } from "@suspensive/react-query";
 import { createBrowserSupabaseClient } from "@/config/supabase-browser";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { SaveStatusProvider } from "./save-status-context";
@@ -14,6 +14,7 @@ import { ProfileBlocksClient } from "./profile-blocks-client";
 
 import { SettingDropdownMenu } from "./setting-dropdownmenu";
 import SavingStatusSection from "./saving-status-section";
+import { pageQueryOptions } from "@/service/pages/page-query-options";
 
 type ProfilePageClientProps = {
   handle: string;
@@ -37,14 +38,22 @@ export default function ProfilePageClient({
           {({ reset }) => (
             <ErrorBoundary onReset={reset} fallback={<div>Error</div>}>
               <Suspense fallback={<div>Loading</div>}>
-                <SuspenseQuery
-                  {...profileQueryOptions.byHandle({
-                    supabase,
-                    handle,
-                    userId,
-                  })}
+                <SuspenseQueries
+                  queries={[
+                    profileQueryOptions.byHandle({
+                      supabase,
+                      handle,
+                      userId,
+                    }),
+                    pageQueryOptions.byOwner(userId, supabase, userId),
+                  ]}
                 >
-                  {({ data: { isOwner, page, blocks } }) => {
+                  {([
+                    {
+                      data: { isOwner, page, blocks },
+                    },
+                    { data: pages },
+                  ]) => {
                     const profile = { isOwner, page };
 
                     return (
@@ -69,13 +78,6 @@ export default function ProfilePageClient({
                                 userId={userId}
                               />
                             </div>
-                            <div className="fixed bottom-10 w-full">
-                              <SettingDropdownMenu
-                                profile={profile}
-                                supabase={supabase}
-                                userId={userId}
-                              />
-                            </div>
                           </section>
                           <section className="w-[420px] xl:w-[800px] shrink-0 transition-all duration-300 mx-auto xl:mx-0">
                             <ProfileBlocksClient
@@ -88,10 +90,28 @@ export default function ProfilePageClient({
                             />
                           </section>
                         </div>
+                        <aside className="fixed bottom-10 w-full flex items-center gap-2">
+                          <div>
+                            {pages.map((page) => (
+                              <p
+                                key={page.id}
+                                // href={page.href}
+                                className="p-2 text-sm text-neutral-700"
+                              >
+                                {page.label}
+                              </p>
+                            ))}
+                          </div>
+                          <SettingDropdownMenu
+                            profile={profile}
+                            supabase={supabase}
+                            userId={userId}
+                          />
+                        </aside>
                       </div>
                     );
                   }}
-                </SuspenseQuery>
+                </SuspenseQueries>
               </Suspense>
             </ErrorBoundary>
           )}

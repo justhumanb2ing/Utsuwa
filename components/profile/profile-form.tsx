@@ -110,7 +110,7 @@ export function ProfileForm({
                 isOwner && document.getElementById(fileInputId)?.click()
               }
               variant={"secondary"}
-              className="size-40 xl:size-52 overflow-hidden rounded-full focus:outline-none hover:ring hover:ring-zinc-200 p-0 mb-6"
+              className="size-40 xl:size-52 overflow-hidden rounded-full focus:outline-none hover:ring hover:ring-zinc-200 p-0 mb-6 disabled:opacity-100"
               aria-label="페이지 이미지 변경"
               disabled={!isOwner}
             >
