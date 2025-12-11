@@ -48,22 +48,7 @@ export const updatePage = async (
         span.setAttribute("page.id", pageId);
         span.setAttribute("page.handle", normalizedHandle);
 
-        const { data: page, error: pageLookupError } = await supabase
-          .from("pages")
-          .select("id, owner_id")
-          .eq("id", pageId)
-          .maybeSingle();
-
-        if (pageLookupError) throw pageLookupError;
-        if (!page) {
-          return { ok: false, reason: "페이지를 찾을 수 없습니다." };
-        }
-
-        if (page.owner_id !== ownerId) {
-          return { ok: false, reason: "권한이 없습니다." };
-        }
-
-        const { error: updateError } = await supabase
+        const { data: updatedPage, error: updateError } = await supabase
           .from("pages")
           .update({
             title,
@@ -71,13 +56,19 @@ export const updatePage = async (
             image_url: imageUrl,
           })
           .eq("id", pageId)
-          .eq("owner_id", ownerId);
+          .eq("owner_id", ownerId)
+          .select("id")
+          .maybeSingle();
 
         if (updateError) {
           if (updateError.code === "23505") {
             return { ok: false, reason: "이미 사용 중인 핸들입니다." };
           }
           throw updateError;
+        }
+
+        if (!updatedPage) {
+          return { ok: false, reason: "페이지를 찾을 수 없습니다." };
         }
 
         return { ok: true };
