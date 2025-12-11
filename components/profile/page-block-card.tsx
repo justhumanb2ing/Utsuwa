@@ -7,15 +7,18 @@ import type { Layout } from "react-grid-layout";
 import { Button } from "@/components/ui/button";
 import {
   LinkBlockEditor,
+  SectionBlockEditor,
   TextBlockEditor,
 } from "@/components/profile/block-editors";
 import { PageBlockResizeControls } from "@/components/profile/page-block-resize-controls";
 import { cn } from "@/lib/utils";
 import { MIN_SIZE } from "@/service/blocks/block-layout";
+import { getDefaultBlockLayout } from "@/service/blocks/block-layout-presets";
 import type { ProfileBlockItem } from "./types/block-item";
 import {
   extractImageData,
   extractLinkData,
+  extractSectionData,
   extractTextData,
 } from "./utils/block-content";
 import type { BlockKey } from "@/config/block-registry";
@@ -62,11 +65,30 @@ export const PageBlockCard = ({
   const isPlaceholder = item.kind === "placeholder";
   const blockType: BlockKey | undefined =
     item.kind === "persisted" ? item.block.type : item.type;
-  const width = layout?.w ?? MIN_SIZE;
-  const height = layout?.h ?? MIN_SIZE;
+  const defaultLayout = blockType
+    ? getDefaultBlockLayout(blockType)
+    : { w: MIN_SIZE, h: MIN_SIZE };
+  const width = layout?.w ?? defaultLayout.w;
+  const height = layout?.h ?? defaultLayout.h;
   const isDeletingPersistedBlock = Boolean(blockId && isDeleting);
   const isDeletable = isPlaceholder || Boolean(blockId);
   const isImageBlock = blockType === "image";
+  const isSectionBlock = blockType === "section";
+  const shouldShowControls = isEditable && isHovered;
+  const showResizeControls = shouldShowControls && !isSectionBlock;
+  const showDeleteButton = shouldShowControls && isDeletable;
+
+  const cardClassName = cn(
+    "group relative h-full rounded-3xl bg-background transition-shadow z-99999",
+    isImageBlock ? "p-0" : "p-4",
+    isEditable && "cursor-grab active:cursor-grabbing",
+    isSectionBlock
+      ? isHovered
+        ? "border border-border/50 shadow-lg"
+        : "border-transparent shadow-none"
+      : "border border-border/40 shadow-sm",
+    isEditable && !isSectionBlock && "hover:shadow-lg"
+  );
 
   const handleDelete = () => {
     if (isPlaceholder) {
@@ -80,54 +102,52 @@ export const PageBlockCard = ({
 
   return (
     <div
-      className={cn(
-        "group relative h-full rounded-3xl border border-border/40 bg-background shadow-sm transition-shadow z-99999",
-        isImageBlock ? "p-0" : "p-4",
-        isEditable && "cursor-grab active:cursor-grabbing hover:shadow-lg"
-      )}
+      className={cardClassName}
       onPointerEnter={() => setIsHovered(true)}
       onPointerLeave={() => setIsHovered(false)}
       onFocusCapture={() => setIsHovered(true)}
       onBlurCapture={() => setIsHovered(false)}
     >
-      {isEditable && isHovered ? (
+      {shouldShowControls ? (
         <aside className="pointer-events-none absolute inset-x-0 -bottom-6 z-999 flex justify-center">
           <div
             data-no-drag
-            className="pointer-events-auto bg-black/80 backdrop-blur-md p-1 rounded-xl flex gap-1 shadow-xl border border-white/10 animate-in fade-in zoom-in duration-200 items-center"
+            className={cn(
+              "pointer-events-auto bg-black/80 backdrop-blur-md p-1 rounded-xl flex shadow-xl border border-white/10 animate-in fade-in zoom-in duration-200 items-center",
+              showResizeControls ? "gap-1" : "gap-0"
+            )}
             onMouseDown={(event) => event.stopPropagation()}
             onTouchStart={(event) => event.stopPropagation()}
           >
-            <PageBlockResizeControls
-              currentW={width}
-              currentH={height}
-              onResize={(size) => onResize({ width: size.w, height: size.h })}
-            />
-            {isDeletable ? (
-              <>
-                <div className="h-2/3 w-px bg-white/20" aria-hidden />
-                <Button
-                  type="button"
-                  size={"icon-sm"}
-                  variant={"ghost"}
-                  data-no-drag
-                  className={cn(
-                    "transition-all p-2 rounded-lg hover:bg-brand-poppy/20 text-brand-poppy hover:text-brand-poppy",
-                    isDeletingPersistedBlock
-                      ? "opacity-100"
-                      : "opacity-0 group-hover:opacity-100"
-                  )}
-                  aria-label="블록 삭제"
-                  disabled={isDeletingPersistedBlock}
-                  onClick={handleDelete}
-                >
-                  {isDeletingPersistedBlock ? (
-                    <Loader2 className="size-4 animate-spin" aria-hidden />
-                  ) : (
-                    <XIcon className="size-5" aria-hidden />
-                  )}
-                </Button>
-              </>
+            {showResizeControls ? (
+              <PageBlockResizeControls
+                currentW={width}
+                currentH={height}
+                onResize={(size) => onResize({ width: size.w, height: size.h })}
+              />
+            ) : null}
+            {showDeleteButton ? (
+              <Button
+                type="button"
+                size={"icon-sm"}
+                variant={"ghost"}
+                data-no-drag
+                className={cn(
+                  "transition-all p-2 rounded-lg hover:bg-brand-poppy/20 text-brand-poppy hover:text-brand-poppy",
+                  isDeletingPersistedBlock
+                    ? "opacity-100"
+                    : "opacity-0 group-hover:opacity-100"
+                )}
+                aria-label="블록 삭제"
+                disabled={isDeletingPersistedBlock}
+                onClick={handleDelete}
+              >
+                {isDeletingPersistedBlock ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <XIcon className="size-5" aria-hidden />
+                )}
+              </Button>
             ) : null}
           </div>
         </aside>
@@ -171,6 +191,28 @@ export const PageBlockCard = ({
                   onSavePlaceholder={
                     isPlaceholder
                       ? (data) => onSavePlaceholder(item.id, "text", data)
+                      : undefined
+                  }
+                  onCancelPlaceholder={
+                    isPlaceholder
+                      ? () => onCancelPlaceholder(item.id)
+                      : undefined
+                  }
+                />
+              );
+            case "section":
+              return (
+                <SectionBlockEditor
+                  className="flex-1"
+                  dragGuardHandlers={dragGuardHandlers}
+                  mode={isPlaceholder ? "placeholder" : "persisted"}
+                  blockId={blockId}
+                  handle={handle}
+                  isOwner={isOwner}
+                  data={extractSectionData(block)}
+                  onSavePlaceholder={
+                    isPlaceholder
+                      ? (data) => onSavePlaceholder(item.id, "section", data)
                       : undefined
                   }
                   onCancelPlaceholder={

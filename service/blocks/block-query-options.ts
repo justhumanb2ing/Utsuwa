@@ -25,6 +25,7 @@ import {
   requestSaveBlockLayout,
   type SaveBlockLayoutParams,
 } from "./save-block-layout";
+import { getDefaultBlockLayout } from "./block-layout-presets";
 
 const blockQueryKey = ["block"] as const;
 const resolveQueryClient = (client?: QueryClient): QueryClient =>
@@ -34,6 +35,7 @@ type BlockMutationContext = {
   handle?: PageHandle;
   previous?: ProfileBffPayload;
   optimisticBlockId?: string;
+  optimisticBlock?: BlockWithDetails;
 };
 
 type MutationLifecycleCallbacks<TData, TVariables> = {
@@ -145,6 +147,20 @@ const throwIfFailed = <TResult extends { status: string; message?: string }>(
   return result as Extract<TResult, { status: "success" }>;
 };
 
+const hydrateCreatedBlock = (
+  block: BlockWithDetails,
+  variables: CreateBlockVariables
+): BlockWithDetails => {
+  const defaultLayout = getDefaultBlockLayout(variables.type);
+
+  return {
+    ...block,
+    ...variables.data,
+    w: block.w ?? defaultLayout.w,
+    h: block.h ?? defaultLayout.h,
+  };
+};
+
 /**
  * Block 도메인의 mutation 옵션 모음.
  * - setQueryData를 기반으로 낙관적 업데이트를 수행한다.
@@ -209,6 +225,7 @@ export const blockQueryOptions = {
             handle: targetHandle,
             previous,
             optimisticBlockId: optimisticBlock.id,
+            optimisticBlock,
           };
         }
 
@@ -222,12 +239,32 @@ export const blockQueryOptions = {
       onSuccess: (data, variables, context) => {
         const queryClient = resolveQueryClient(options?.queryClient);
         if (context?.handle) {
+          const hydrated = hydrateCreatedBlock(data, variables);
           setProfileBlocks(queryClient, context.handle, (blocks) => {
             const replaced = context.optimisticBlockId
               ? blocks.map((block) =>
-                  block.id === context.optimisticBlockId ? data : block
+                  block.id === context.optimisticBlockId
+                    ? {
+                        ...hydrated,
+                        x: block.x ?? hydrated.x ?? 0,
+                        y: block.y ?? hydrated.y ?? 0,
+                        w: block.w ?? hydrated.w,
+                        h: block.h ?? hydrated.h,
+                        ordering:
+                          block.ordering ??
+                          hydrated.ordering ??
+                          blocks.length,
+                        created_at: block.created_at ?? hydrated.created_at,
+                      }
+                    : block
                 )
-              : [...blocks, data];
+              : [
+                  ...blocks,
+                  {
+                    ...hydrated,
+                    ordering: hydrated.ordering ?? blocks.length,
+                  },
+                ];
             return replaced;
           });
         }

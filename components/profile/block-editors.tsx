@@ -6,7 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useLinkBlockEditor } from "@/hooks/use-link-block-editor";
 import { useTextBlockEditor } from "@/hooks/use-text-block-editor";
-import type { LinkBlockParams, TextBlockParams } from "@/types/block-editor";
+import { useSectionBlockEditor } from "@/hooks/use-section-block-editor";
+import type {
+  LinkBlockParams,
+  SectionBlockParams,
+  TextBlockParams,
+} from "@/types/block-editor";
 import { cn } from "@/lib/utils";
 
 type DragGuardHandlers = Pick<
@@ -103,6 +108,66 @@ export const TextBlockEditor = ({
       disabled={!isOwner}
       className={cn(
         "resize-none border-none shadow-none h-full flex-1 text-xl! font-medium rounded-2xl",
+        "focus-visible:border-none focus-visible:ring-0 focus-visible:bg-muted transition-colors duration-200",
+        "hover:bg-muted",
+        className
+      )}
+      {...dragGuardHandlers}
+    />
+  );
+};
+
+export type SectionBlockEditorProps = SectionBlockParams & {
+  onCancelPlaceholder?: () => void;
+  className?: string;
+  dragGuardHandlers?: DragGuardHandlers;
+};
+
+export const SectionBlockEditor = ({
+  mode,
+  blockId,
+  handle,
+  isOwner,
+  data,
+  onSavePlaceholder,
+  className,
+  dragGuardHandlers,
+}: SectionBlockEditorProps) => {
+  const { values, setTitle } = useSectionBlockEditor({
+    mode,
+    blockId,
+    handle,
+    isOwner,
+    data,
+    onSavePlaceholder,
+  });
+
+  const isEmpty = values.title.trim().length === 0;
+
+  if (!isOwner) {
+    return (
+      <div
+        className={cn(
+          "w-full h-full flex items-center",
+          isEmpty ? "text-muted-foreground" : "text-foreground",
+          className
+        )}
+        {...dragGuardHandlers}
+      >
+        <p className="text-2xl font-semibold leading-tight">
+          {isEmpty ? "제목이 비어 있습니다." : values.title}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <Textarea
+      placeholder="섹션 제목을 입력하세요"
+      value={values.title}
+      onChange={(event) => setTitle(event.target.value)}
+      className={cn(
+        "resize-none border-none shadow-none h-full flex-1 text-2xl! font-bold leading-tight rounded-2xl bg-transparent",
         "focus-visible:border-none focus-visible:ring-0 focus-visible:bg-muted transition-colors duration-200",
         "hover:bg-muted",
         className

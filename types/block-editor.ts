@@ -5,9 +5,11 @@ export type BlockEditorMode = "placeholder" | "persisted";
 export type LinkBlockData = { url?: string | null; title?: string | null };
 export type TextBlockData = { content?: string | null };
 export type ImageBlockData = { url?: string | null };
+export type SectionBlockData = { title?: string | null };
 
 export type LinkBlockState = { url: string; title: string };
 export type TextBlockState = { content: string };
+export type SectionBlockState = { title: string };
 
 type BaseBlockEditorParams = {
   blockId?: string;
@@ -25,6 +27,10 @@ export type BlockEditorParams<TData, TSave = TData> = BaseBlockEditorParams & {
 export type LinkBlockParams = BlockEditorParams<LinkBlockData>;
 export type TextBlockParams = BlockEditorParams<TextBlockData>;
 export type ImageBlockParams = BlockEditorParams<ImageBlockData, { url: string }>;
+export type SectionBlockParams = BlockEditorParams<
+  SectionBlockData,
+  SectionBlockState
+>;
 
 export type LinkBlockEditorParams<T> = BaseBlockEditorParams & {
   data: LinkBlockData;

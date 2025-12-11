@@ -8,7 +8,8 @@ type CommonParams = {
 
 export type UpdateBlockContentParams =
   | (CommonParams & { type: "link"; url: string; title: string })
-  | (CommonParams & { type: "text"; content: string });
+  | (CommonParams & { type: "text"; content: string })
+  | (CommonParams & { type: "section"; title: string });
 
 export type UpdateBlockResponse =
   | { status: "success"; blockId: string }
@@ -93,6 +94,19 @@ export const requestUpdateBlockContent = async (
                 url: params.url.trim(),
                 title: params.title.trim(),
               },
+              { onConflict: "block_id" }
+            )
+            .select("block_id")
+            .single();
+
+          if (error) throw error;
+        }
+
+        if (params.type === "section") {
+          const { error } = await supabase
+            .from("block_section")
+            .upsert(
+              { block_id: params.blockId, title: params.title.trim() },
               { onConflict: "block_id" }
             )
             .select("block_id")

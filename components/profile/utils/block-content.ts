@@ -33,3 +33,10 @@ export const extractImageData = (
     aspectRatio: block.aspect_ratio ?? null,
   };
 };
+
+export const extractSectionData = (
+  block?: BlockWithDetails
+): { title?: string | null } => {
+  if (!block) return {};
+  return { title: block.title ?? null };
+};

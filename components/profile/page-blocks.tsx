@@ -61,7 +61,7 @@ const useDragGuardHandlers = (): DragGuardHandlers => {
   );
 };
 
-export const PageBlocks = ({
+export default function PageBlocks ({
   items,
   handle,
   isOwner,
@@ -71,7 +71,7 @@ export const PageBlocks = ({
   deletingBlockIds,
   onLayoutChange,
   disableReorder,
-}: PageBlocksProps) => {
+}: PageBlocksProps) {
   const isEditable = isOwner && !disableReorder;
   const dragGuardHandlers = useDragGuardHandlers();
 

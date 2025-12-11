@@ -15,7 +15,7 @@ import type {
   ProfileOwnership,
 } from "@/types/profile";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { PageBlocks } from "@/components/profile/page-blocks";
+import PageBlocks from "@/components/profile/page-blocks";
 import type {
   PlaceholderBlock,
   ProfileBlockItem,
@@ -52,7 +52,8 @@ const readImageAspectRatio = async (
           reject(new Error("이미지 크기를 확인할 수 없습니다."));
         }
       };
-      image.onerror = () => reject(new Error("이미지 정보를 불러오지 못했습니다."));
+      image.onerror = () =>
+        reject(new Error("이미지 정보를 불러오지 못했습니다."));
       image.src = objectUrl;
     });
 

@@ -19,7 +19,7 @@ export const GRID_ROWS = 175;
 export const GRID_ROW_HEIGHT = 175;
 export const GRID_MARGIN: [number, number] = [26, 26];
 export const MIN_SIZE = 1;
-export const MAX_SIZE = 2;
+export const MAX_SIZE = GRID_COLUMNS;
 
 export type LayoutInput = Pick<BlockWithDetails, "id" | "x" | "y" | "w" | "h">;
 

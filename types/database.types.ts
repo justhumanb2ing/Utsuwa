@@ -14,26 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      block_divider: {
-        Row: {
-          block_id: string
-        }
-        Insert: {
-          block_id: string
-        }
-        Update: {
-          block_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "block_divider_block_id_fkey"
-            columns: ["block_id"]
-            isOneToOne: true
-            referencedRelation: "blocks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       block_image: {
         Row: {
           aspect_ratio: number | null
@@ -123,6 +103,29 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "block_map_block_id_fkey"
+            columns: ["block_id"]
+            isOneToOne: true
+            referencedRelation: "blocks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      block_section: {
+        Row: {
+          block_id: string
+          title: string | null
+        }
+        Insert: {
+          block_id: string
+          title?: string | null
+        }
+        Update: {
+          block_id?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "block_section_block_id_fkey"
             columns: ["block_id"]
             isOneToOne: true
             referencedRelation: "blocks"
@@ -336,7 +339,7 @@ export type Database = {
       }
     }
     Enums: {
-      block_type: "link" | "text" | "image" | "map" | "section" | "divider"
+      block_type: "link" | "text" | "image" | "map" | "section"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -464,7 +467,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      block_type: ["link", "text", "image", "map", "section", "divider"],
+      block_type: ["link", "text", "image", "map", "section"],
     },
   },
 } as const

@@ -74,7 +74,7 @@ export default function FixedToolbar({
               onClick={() => handleButtonClick(key, item)}
               className={"p-2 text-white hover:bg-background/10 rounded-lg"}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="h-6 w-6" weight="fill" />
             </ToolbarButton>
           );
         })}

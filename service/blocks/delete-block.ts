@@ -14,16 +14,7 @@ export type DeleteBlockResult =
   | { status: "success" }
   | { status: "error"; message: string };
 
-type DeleteBlockApiResponse = {
-  status?: "success" | "error";
-  reason?: string;
-  message?: string;
-};
-
 const DEFAULT_ERROR_MESSAGE = "블록을 삭제하지 못했습니다.";
-
-const resolveErrorMessage = (body: DeleteBlockApiResponse): string =>
-  body.message ?? body.reason ?? DEFAULT_ERROR_MESSAGE;
 
 /**
  * 프로필 페이지에서 블록을 삭제한다.

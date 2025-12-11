@@ -7,6 +7,7 @@ import {
   MIN_SIZE,
   type BlockLayout,
 } from "./block-layout";
+import { getDefaultBlockLayout } from "./block-layout-presets";
 
 const toStringOrNull = (value: unknown): string | null =>
   typeof value === "string" ? value : null;
@@ -20,9 +21,16 @@ const toNumberOrNull = (value: unknown): number | undefined => {
   return undefined;
 };
 
-const clampSize = (value: number | null | undefined): number => {
-  if (typeof value !== "number" || Number.isNaN(value)) return MIN_SIZE;
-  return Math.min(Math.max(value, MIN_SIZE), MAX_SIZE);
+const clampSize = (
+  value: number | null | undefined,
+  fallback?: number
+): number => {
+  const resolved =
+    typeof value === "number" && !Number.isNaN(value)
+      ? value
+      : fallback ?? MIN_SIZE;
+  const minimum = typeof fallback === "number" ? Math.max(fallback, MIN_SIZE) : MIN_SIZE;
+  return Math.min(Math.max(resolved, minimum), MAX_SIZE);
 };
 
 const clampCoordinate = (
@@ -33,9 +41,12 @@ const clampCoordinate = (
   return Math.min(Math.max(value, 0), maxIndex);
 };
 
-const sanitizeLayout = (layout: Partial<BlockLayout>): BlockLayout => {
-  const w = clampSize(layout.w);
-  const h = clampSize(layout.h);
+const sanitizeLayout = (
+  layout: Partial<BlockLayout>,
+  defaultSize?: { w: number; h: number }
+): BlockLayout => {
+  const w = clampSize(layout.w, defaultSize?.w);
+  const h = clampSize(layout.h, defaultSize?.h);
   const x = clampCoordinate(layout.x, GRID_ROWS - 1);
   const y = clampCoordinate(layout.y, GRID_COLUMNS - 1);
 
@@ -95,35 +106,42 @@ type RawBlock = Partial<BlockWithDetails> & Record<string, unknown>;
 export const toBlockWithDetails = (
   block: RawBlock,
   fallbackOrdering: number
-): BlockWithDetails => ({
-  id: String(block.id),
-  type: block.type as BlockWithDetails["type"],
-  ordering:
-    typeof block.ordering === "number" ? block.ordering : fallbackOrdering,
-  created_at:
-    typeof block.created_at === "string"
-      ? block.created_at
-      : new Date().toISOString(),
-  ...pickLayoutFields({
-    id: block.id,
-    x: toNumberOrNull(block.x),
-    y: toNumberOrNull(block.y),
-    w: toNumberOrNull(block.w),
-    h: toNumberOrNull(block.h),
-  }),
-  content: toStringOrNull(block.content),
-  url: toStringOrNull(block.url),
-  title: toStringOrNull(block.title),
-  description: toStringOrNull(block.description),
-  image_url: toStringOrNull(block.image_url),
-  icon_url: toStringOrNull(block.icon_url),
-  link_url: toStringOrNull(block.link_url),
-  aspect_ratio: toNumberOrNull(block.aspect_ratio),
-  thumbnail: toStringOrNull(block.thumbnail),
-  lat: toNumberOrNull(block.lat),
-  lng: toNumberOrNull(block.lng),
-  zoom: toNumberOrNull(block.zoom),
-});
+): BlockWithDetails => {
+  const defaultLayout = getDefaultBlockLayout(block.type as BlockKey);
+
+  return {
+    id: String(block.id),
+    type: block.type as BlockWithDetails["type"],
+    ordering:
+      typeof block.ordering === "number" ? block.ordering : fallbackOrdering,
+    created_at:
+      typeof block.created_at === "string"
+        ? block.created_at
+        : new Date().toISOString(),
+    ...pickLayoutFields(
+      {
+        id: block.id,
+        x: toNumberOrNull(block.x),
+        y: toNumberOrNull(block.y),
+        w: toNumberOrNull(block.w),
+        h: toNumberOrNull(block.h),
+      },
+      { defaultSize: defaultLayout }
+    ),
+    content: toStringOrNull(block.content),
+    url: toStringOrNull(block.url),
+    title: toStringOrNull(block.title),
+    description: toStringOrNull(block.description),
+    image_url: toStringOrNull(block.image_url),
+    icon_url: toStringOrNull(block.icon_url),
+    link_url: toStringOrNull(block.link_url),
+    aspect_ratio: toNumberOrNull(block.aspect_ratio),
+    thumbnail: toStringOrNull(block.thumbnail),
+    lat: toNumberOrNull(block.lat),
+    lng: toNumberOrNull(block.lng),
+    zoom: toNumberOrNull(block.zoom),
+  };
+};
 
 /**
  * Block 배열을 BlockWithDetails로 변환하고 ordering을 정규화한다.
@@ -154,9 +172,10 @@ const pickBlockDataFields = (
 });
 
 const pickLayoutFields = (
-  data: Partial<BlockLayout>
+  data: Partial<BlockLayout>,
+  options?: { defaultSize?: { w: number; h: number } }
 ): Pick<BlockWithDetails, "x" | "y" | "w" | "h"> => {
-  const sanitized = sanitizeLayout(data);
+  const sanitized = sanitizeLayout(data, options?.defaultSize);
   return { x: sanitized.x, y: sanitized.y, w: sanitized.w, h: sanitized.h };
 };
 
@@ -169,19 +188,26 @@ export const createOptimisticBlock = (
     data: Record<string, unknown>;
     currentLength: number;
   }
-): BlockWithDetails => ({
-  id: crypto.randomUUID(),
-  type: params.type,
-  ordering: params.currentLength,
-  created_at: new Date().toISOString(),
-  ...pickLayoutFields({
-    x: 0,
-    y: 0,
-    w: MIN_SIZE,
-    h: MIN_SIZE,
-  }),
-  ...pickBlockDataFields(params.data),
-});
+): BlockWithDetails => {
+  const defaultLayout = getDefaultBlockLayout(params.type);
+
+  return {
+    id: crypto.randomUUID(),
+    type: params.type,
+    ordering: params.currentLength,
+    created_at: new Date().toISOString(),
+    ...pickLayoutFields(
+      {
+        x: params.currentLength,
+        y: 0,
+        w: defaultLayout.w,
+        h: defaultLayout.h,
+      },
+      { defaultSize: defaultLayout }
+    ),
+    ...pickBlockDataFields(params.data),
+  };
+};
 
 /**
  * ordering payload를 기존 블록 목록에 적용하고 정규화한다.
@@ -208,11 +234,15 @@ export const applyContentPatch = (
   params:
     | { type: "text"; blockId: string; content: string }
     | { type: "link"; blockId: string; url: string; title: string }
+    | { type: "section"; blockId: string; title: string }
 ): BlockWithDetails[] =>
   blocks.map((block) => {
     if (block.id !== params.blockId) return block;
     if (params.type === "text") {
       return { ...block, content: params.content };
+    }
+    if (params.type === "section") {
+      return { ...block, title: params.title };
     }
     return { ...block, url: params.url, title: params.title };
   });
