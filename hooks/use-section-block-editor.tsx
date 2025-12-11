@@ -37,7 +37,7 @@ export const useSectionBlockEditor = (params: SectionBlockParams) => {
         updateBlockMutation.mutate(
           {
             type: "section",
-            blockId: params.blockId,
+            blockId: params.blockId!,
             handle: params.handle,
             title: payload.title,
           },
