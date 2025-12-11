@@ -68,10 +68,10 @@ export const StatusBadge = ({ status }: { status: SaveStatus }) => {
 
   return (
     <div
-      className="flex items-center gap-2 text-xs text-muted-foreground"
+      className="flex items-center gap-2 text-sm text-white"
       aria-live="polite"
     >
-      <span aria-hidden className={`size-2 rounded-full ${indicatorClass}`} />
+      {/* <span aria-hidden className={`size-2 rounded-full ${indicatorClass}`} /> */}
       {label}
     </div>
   );

@@ -7,7 +7,7 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import type { BlockWithDetails } from "@/types/block";
-import type { BlockType } from "@/config/block-registry";
+import type { BlockKey } from "@/config/block-registry";
 import type {
   PageHandle,
   PageId,
@@ -15,7 +15,6 @@ import type {
   ProfileOwnership,
 } from "@/types/profile";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { BlockRegistryPanel } from "@/components/layout/block-registry";
 import { PageBlocks } from "@/components/profile/page-blocks";
 import type {
   PlaceholderBlock,
@@ -33,6 +32,7 @@ import {
   initialBlockEditorState,
 } from "./block-editor-reducer";
 import { useBlockEditorController } from "./block-editor-controller";
+import FixedToolbar from "./fixed-toolbar";
 
 type ProfileBlocksClientProps = ProfileOwnership & {
   initialBlocks: BlockWithDetails[];
@@ -49,7 +49,7 @@ export const ProfileBlocksClient = ({
   pageId,
   supabase,
   userId,
-  isOwner
+  isOwner,
 }: ProfileBlocksClientProps) => {
   const [state, dispatch] = useReducer(
     blockEditorReducer,
@@ -101,7 +101,7 @@ export const ProfileBlocksClient = ({
   });
 
   const handleAddPlaceholder = useCallback(
-    (type: BlockType) => {
+    (type: BlockKey) => {
       if (!isOwner) return;
       dispatch({ type: "ADD_PLACEHOLDER", blockType: type });
     },
@@ -173,7 +173,7 @@ export const ProfileBlocksClient = ({
   );
 
   const handleSavePlaceholder = useCallback(
-    (placeholderId: string, type: BlockType, data: Record<string, unknown>) => {
+    (placeholderId: string, type: BlockKey, data: Record<string, unknown>) => {
       if (!isOwner || createBlockMutation.isPending) return;
 
       const placeholder = state.placeholders.find(
@@ -242,7 +242,10 @@ export const ProfileBlocksClient = ({
     <BlockEditorActionsProvider value={blockEditorActions}>
       <BlockEnvProvider value={blockEnvValue}>
         <div className="space-y-3">
-          {isOwner ? <BlockRegistryPanel /> : null}
+          <FixedToolbar
+            isVisible={isOwner}
+            addPlaceholder={handleAddPlaceholder}
+          />
           <PageBlocks
             items={items}
             handle={handle}

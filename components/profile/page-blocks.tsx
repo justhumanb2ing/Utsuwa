@@ -17,7 +17,7 @@ import { Item } from "@/components/ui/item";
 import { ProfileGrid } from "@/components/profile/profile-grid";
 import { PageBlockCard } from "@/components/profile/page-block-card";
 import { useProfileGridLayout } from "@/components/profile/hooks/use-profile-grid-layout";
-import type { BlockType } from "@/config/block-registry";
+import type { BlockKey } from "@/config/block-registry";
 import type { BlockLayout } from "@/service/blocks/block-layout";
 import {
   isPersistedBlock,
@@ -36,7 +36,7 @@ type PageBlocksProps = {
   isOwner: boolean;
   onSavePlaceholder: (
     placeholderId: string,
-    type: BlockType,
+    type: BlockKey,
     data: Record<string, unknown>
   ) => void;
   onCancelPlaceholder: (placeholderId: string) => void;
@@ -121,7 +121,7 @@ export const PageBlocks = ({
   });
 
   const handleSavePlaceholder = useCallback(
-    (placeholderId: string, type: BlockType, data: Record<string, unknown>) => {
+    (placeholderId: string, type: BlockKey, data: Record<string, unknown>) => {
       onSavePlaceholder(placeholderId, type, data);
     },
     [onSavePlaceholder]

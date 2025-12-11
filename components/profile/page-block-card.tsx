@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { MIN_SIZE } from "@/service/blocks/block-layout";
 import type { ProfileBlockItem } from "./types/block-item";
 import { extractLinkData, extractTextData } from "./utils/block-content";
-import type { BlockType } from "@/config/block-registry";
+import type { BlockKey } from "@/config/block-registry";
 
 type DragGuardHandlers = Pick<
   HTMLAttributes<HTMLElement>,
@@ -32,7 +32,7 @@ type PageBlockCardProps = {
   onResize: (size: { width: number; height: number }) => void;
   onSavePlaceholder: (
     placeholderId: string,
-    type: BlockType,
+    type: BlockKey,
     data: Record<string, unknown>
   ) => void;
   onCancelPlaceholder: (placeholderId: string) => void;
@@ -55,7 +55,7 @@ export const PageBlockCard = ({
   const block = item.kind === "persisted" ? item.block : undefined;
   const blockId = block?.id;
   const isPlaceholder = item.kind === "placeholder";
-  const blockType: BlockType | undefined =
+  const blockType: BlockKey | undefined =
     item.kind === "persisted" ? item.block.type : item.type;
   const width = layout?.w ?? MIN_SIZE;
   const height = layout?.h ?? MIN_SIZE;

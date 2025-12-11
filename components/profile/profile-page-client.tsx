@@ -13,7 +13,6 @@ import { ProfileForm } from "./profile-form";
 import { ProfileBlocksClient } from "./profile-blocks-client";
 
 import { SettingDropdownMenu } from "./setting-dropdownmenu";
-import SavingStatusSection from "./saving-status-section";
 import { pageQueryOptions } from "@/service/pages/page-query-options";
 
 type ProfilePageClientProps = {
@@ -32,7 +31,10 @@ export default function ProfilePageClient({
   );
 
   return (
-    <main className="min-h-dvh w-full flex flex-col bg-background">
+    <main
+      id="container"
+      className="relative min-h-dvh h-dvh max-h-dvh w-full overflow-y-auto flex flex-col bg-background"
+    >
       <SaveStatusProvider>
         <QueryErrorResetBoundary>
           {({ reset }) => (
@@ -57,14 +59,9 @@ export default function ProfilePageClient({
                     const profile = { isOwner, page };
 
                     return (
-                      <div className="w-full px-4 md:px-6 xl:px-8 py-6 relative">
+                      <div className="w-full px-4 md:px-6 xl:px-0 py-16 relative">
                         <div className="max-w-lg xl:max-w-[1600px] mx-auto flex flex-col xl:flex-row items-start justify-center gap-8">
-                          <section className="w-full xl:w-7xl flex flex-col gap-6 shrink">
-                            {isOwner ? (
-                              <div className="flex w-full justify-end">
-                                <SavingStatusSection />
-                              </div>
-                            ) : null}
+                          <section className="w-full xl:w-7xl flex flex-col gap-6 shrink xl:sticky xl:top-16">
                             <div className="px-10 sm:px-16">
                               <ProfileForm
                                 pageId={page.id}

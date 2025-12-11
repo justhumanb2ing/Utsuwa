@@ -1,8 +1,6 @@
-import type { Database } from "@/types/database.types";
+import * as Icons from "lucide-react";
 
 export type BlockUIType = "popover" | "upload" | "none";
-
-export type BlockType = Database["public"]["Enums"]["block_type"];
 
 export type BlockRegistryItem = {
   label: string;
@@ -11,17 +9,16 @@ export type BlockRegistryItem = {
   ui: BlockUIType;
 };
 
-export const BLOCK_REGISTRY: Record<BlockType, BlockRegistryItem> = {
-  link: { label: "Link", icon: "Link", enabled: true, ui: "popover" },
-  text: { label: "Text", icon: "Type", enabled: true, ui: "popover" },
-  section: {
-    label: "Section",
-    icon: "PanelTop",
-    enabled: false,
-    ui: "popover",
-  },
-  image: { label: "Image", icon: "Image", enabled: true, ui: "upload" },
-  video: { label: "Video", icon: "Video", enabled: true, ui: "upload" },
-  map: { label: "Map", icon: "MapPin", enabled: false, ui: "none" },
-  divider: { label: "Divider", icon: "Minus", enabled: false, ui: "none" },
+export const BLOCK_REGISTRY = {
+  link: { label: "Link", icon: Icons.LinkIcon, ui: "popover" },
+  text: { label: "Text", icon: Icons.TypeIcon, ui: "popover" },
+  image: { label: "Image", icon: Icons.ImageIcon, ui: "upload" },
+  video: { label: "Video", icon: Icons.VideoIcon, ui: "upload" },
+  map: { label: "Map", icon: Icons.MapPinIcon, ui: "none" },
+  divider: { label: "Divider", icon: Icons.DivideIcon, ui: "none" },
+  section: { label: "Section", icon: Icons.SectionIcon, ui: "popover" },
 } as const;
+
+export type BlockRegistry = typeof BLOCK_REGISTRY;
+export type BlockKey = keyof BlockRegistry;
+export type BlockConfig = BlockRegistry[BlockKey];

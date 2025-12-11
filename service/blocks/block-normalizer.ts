@@ -1,4 +1,4 @@
-import type { BlockType } from "@/config/block-registry";
+import type { BlockKey } from "@/config/block-registry";
 import type { BlockWithDetails } from "@/types/block";
 import {
   GRID_COLUMNS,
@@ -165,7 +165,7 @@ const pickLayoutFields = (
  */
 export const createOptimisticBlock = (
   params: {
-    type: BlockType;
+    type: BlockKey;
     data: Record<string, unknown>;
     currentLength: number;
   }

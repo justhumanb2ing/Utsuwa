@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { BlockType } from "@/config/block-registry";
+import type { BlockKey } from "@/config/block-registry";
 import type { BlockWithDetails } from "@/types/block";
 import type { PageHandle, PageId } from "@/types/profile";
 
@@ -9,7 +9,7 @@ export type CreateBlockParams = {
   userId: string | null;
   pageId: PageId;
   handle: PageHandle;
-  type: BlockType;
+  type: BlockKey;
   data: Record<string, unknown>;
 };
 

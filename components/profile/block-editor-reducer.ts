@@ -1,8 +1,8 @@
-import type { BlockType } from "@/config/block-registry";
+import type { BlockKey } from "@/config/block-registry";
 import type { BlockLayout } from "@/service/blocks/block-layout";
 
 export type BlockEditorState = {
-  placeholders: { id: string; type: BlockType }[];
+  placeholders: { id: string; type: BlockKey }[];
   deletingBlockIds: Set<string>;
   latestLayout: BlockLayout[] | null;
   saveState: "idle" | "dirty" | "saving" | "saved" | "error";
@@ -10,7 +10,7 @@ export type BlockEditorState = {
 };
 
 export type BlockEditorAction =
-  | { type: "ADD_PLACEHOLDER"; blockType: BlockType }
+  | { type: "ADD_PLACEHOLDER"; blockType: BlockKey }
   | { type: "CANCEL_PLACEHOLDER"; placeholderId: string }
   | { type: "DELETE_BLOCK_START"; blockId: string }
   | { type: "DELETE_BLOCK_FINISH"; blockId: string }
