@@ -14,6 +14,8 @@ import { ProfileBlocksClient } from "./profile-blocks-client";
 
 import { SettingDropdownMenu } from "./setting-dropdownmenu";
 import { pageQueryOptions } from "@/service/pages/page-query-options";
+import { cn } from "@/lib/utils";
+import SettingMobileSheet from "./setting-mobile-sheet";
 
 type ProfilePageClientProps = {
   handle: string;
@@ -59,10 +61,10 @@ export default function ProfilePageClient({
                     const profile = { isOwner, page };
 
                     return (
-                      <div className="w-full px-4 md:px-6 xl:px-0 py-16 relative">
-                        <div className="max-w-lg xl:max-w-[1600px] mx-auto flex flex-col xl:flex-row items-start justify-center gap-8">
+                      <div className="w-full pt-16 relative h-full">
+                        <div className="max-w-lg xl:max-w-[1600px] mx-auto flex flex-col xl:flex-row items-start justify-center gap-8 h-full px-4 md:px-6 xl:px-0">
                           <section className="w-full xl:w-7xl flex flex-col gap-6 shrink xl:sticky xl:top-16">
-                            <div className="px-10 sm:px-16">
+                            <div className="px-10 sm:px-16 relative">
                               <ProfileForm
                                 pageId={page.id}
                                 handle={page.handle}
@@ -74,9 +76,17 @@ export default function ProfilePageClient({
                                 supabase={supabase}
                                 userId={userId}
                               />
+
+                              <div className="absolute top-0 right-10 xl:hidden">
+                                <SettingMobileSheet
+                                  profile={profile}
+                                  supabase={supabase}
+                                  userId={userId}
+                                />
+                              </div>
                             </div>
                           </section>
-                          <section className="w-[420px] xl:w-[800px] shrink-0 transition-all duration-300 mx-auto xl:mx-0">
+                          <section className="w-[420px] xl:w-[800px] shrink-0 transition-all duration-300 mx-auto xl:mx-0 grow">
                             <ProfileBlocksClient
                               initialBlocks={blocks}
                               handle={page.handle}
@@ -87,23 +97,32 @@ export default function ProfilePageClient({
                             />
                           </section>
                         </div>
-                        <aside className="fixed bottom-10 w-full flex items-center gap-2">
-                          <div>
-                            {pages.map((page) => (
-                              <p
-                                key={page.id}
-                                // href={page.href}
-                                className="p-2 text-sm text-neutral-700"
-                              >
-                                {page.label}
-                              </p>
-                            ))}
+                        <aside
+                          className={cn(
+                            "bg-brand-cloud/20 p-6",
+                            "xl:fixed xl:bottom-10 xl:left-24 xl:bg-transparent"
+                          )}
+                        >
+                          <div className="max-w-lg mx-auto flex items-center w-full gap-2 px-4 md:px-8 xl:px-0">
+                            <div>
+                              {pages.map((page) => (
+                                <p
+                                  key={page.id}
+                                  // href={page.href}
+                                  className="p-2 text-sm text-neutral-700 font-medium"
+                                >
+                                  {page.label}
+                                </p>
+                              ))}
+                            </div>
+                            <div className="hidden xl:flex">
+                              <SettingDropdownMenu
+                                profile={profile}
+                                supabase={supabase}
+                                userId={userId}
+                              />
+                            </div>
                           </div>
-                          <SettingDropdownMenu
-                            profile={profile}
-                            supabase={supabase}
-                            userId={userId}
-                          />
                         </aside>
                       </div>
                     );

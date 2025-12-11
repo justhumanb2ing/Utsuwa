@@ -8,17 +8,20 @@ import { pageQueryOptions } from "@/service/pages/page-query-options";
 import { useSaveStatus } from "./save-status-context";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ProfileBffPayload } from "@/types/profile";
+import { cn } from "@/lib/utils";
 
 type PageVisibilityToggleProps = {
   profile: Pick<ProfileBffPayload, "isOwner" | "page">;
   supabase: SupabaseClient;
   userId: string | null;
+  small?: boolean;
 };
 
 export function PageVisibilityToggle({
   profile,
   supabase,
   userId,
+  small,
 }: PageVisibilityToggleProps) {
   const { isOwner, page } = profile;
 
@@ -66,8 +69,15 @@ export function PageVisibilityToggle({
   return (
     <div className="flex w-full items-center justify-between gap-4">
       <div className="space-y-1">
-        <p className="text-xs font-medium text-foreground">Change visibility</p>
-        <p className="text-xs text-muted-foreground">
+        <p
+          className={cn(
+            "text-sm font-medium text-foreground",
+            small && "text-xs"
+          )}
+        >
+          Change visibility
+        </p>
+        <p className={cn("text-sm text-muted-foreground", small && "text-xs")}>
           {checked ? (
             <span>Public — Anyone can view</span>
           ) : (

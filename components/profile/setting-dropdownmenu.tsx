@@ -26,11 +26,11 @@ import {
 import { useClerk } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 
-type SettingDropdownMenuProps = {
+interface SettingDropdownMenuProps {
   profile: Pick<ProfileBffPayload, "isOwner" | "page">;
   supabase: SupabaseClient;
   userId: string | null;
-};
+}
 
 export function SettingDropdownMenu({
   profile,
@@ -64,7 +64,7 @@ export function SettingDropdownMenu({
           <DialogTrigger asChild>
             <DropdownMenuItem className="text-xs flex-row justify-between items-center gap-1">
               <div className="space-y-1">
-                <p>Change Handle</p>
+                <p className="font-medium">Change Handle</p>
                 <p className="text-muted-foreground">{page.handle}</p>
               </div>
               <ArrowUpRightIcon />
@@ -82,10 +82,11 @@ export function SettingDropdownMenu({
               profile={profile}
               supabase={supabase}
               userId={userId}
+              small
             />
           </DropdownMenuItem>
 
-          <DropdownMenuSeparator className="mx-1"/>
+          <DropdownMenuSeparator className="mx-1" />
 
           <DropdownMenuItem
             onClick={() => signOut({ redirectUrl: pathname })}
