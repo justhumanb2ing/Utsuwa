@@ -10,7 +10,7 @@ const FALLBACK_LAYOUT: Record<BlockKey, BlockLayoutPreset> = {
   map: { w: 2, h: 2 },
   section: {
     w: GRID_RESPONSIVE_COLUMNS[CANONICAL_BREAKPOINT],
-    h: 2,
+    h: 1,
   },
 };
 

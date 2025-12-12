@@ -11,7 +11,7 @@ type PageVisibilityPayload = Pick<
   | "image_url"
   | "owner_id"
   | "is_public"
-  | "ordering"
+  | "created_at"
 >;
 
 export type TogglePageVisibilityParams = {

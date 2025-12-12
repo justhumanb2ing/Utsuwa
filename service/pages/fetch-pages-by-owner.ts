@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Tables } from "@/types/database.types";
 
 export type OwnerPages = Array<
-  Pick<Tables<"pages">, "id" | "handle" | "title" | "ordering">
+  Pick<Tables<"pages">, "id" | "handle" | "title">
 >;
 
 export type FetchPagesByOwnerParams = {
@@ -34,14 +34,17 @@ export const fetchPagesByOwnerId = async (
 
         const { data, error } = await supabase
           .from("pages")
-          .select("id, handle, title, ordering")
+          .select("id, handle, title, created_at")
           .eq("owner_id", ownerId)
-          .order("ordering", { ascending: true, nullsFirst: false })
-          .order("created_at", { ascending: true });
+          .order("created_at", { ascending: true, nullsFirst: false });
 
         if (error) throw error;
 
-        return (data ?? []) as OwnerPages;
+        return (data ?? []).map(({ id, handle, title }) => ({
+          id,
+          handle,
+          title,
+        }));
       }
     );
   } catch (error) {

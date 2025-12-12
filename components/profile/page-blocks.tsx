@@ -46,6 +46,17 @@ type PageBlocksProps = {
   disableReorder?: boolean;
 };
 
+type ProfileBlockEntry = { item: ProfileBlockItem; index: number };
+
+const resolveLayoutId = (entry: ProfileBlockEntry): string => {
+  if (isPersistedBlock(entry.item)) {
+    return entry.item.block.id
+      ? String(entry.item.block.id)
+      : String(entry.index);
+  }
+  return entry.item.id;
+};
+
 const useDragGuardHandlers = (): DragGuardHandlers => {
   const stopPropagation = useCallback((event: { stopPropagation: () => void }) => {
     event.stopPropagation();
@@ -76,19 +87,27 @@ export default function PageBlocks ({
   const dragGuardHandlers = useDragGuardHandlers();
 
   const layoutInputs = useMemo(() => toLayoutInputs(items), [items]);
-  const itemsWithIndex = useMemo(
+  const itemsWithIndex = useMemo<ProfileBlockEntry[]>(
     () => items.map((item, index) => ({ item, index })),
     [items]
+  );
+  const itemsWithId = useMemo(
+    () =>
+      itemsWithIndex.map((entry) => ({
+        ...entry,
+        id: resolveLayoutId(entry),
+      })),
+    [itemsWithIndex]
   );
 
   const persistedIds = useMemo(
     () =>
       new Set(
-        itemsWithIndex
+        itemsWithId
           .filter(({ item }) => isPersistedBlock(item))
-          .map(({ item }) => String(item.block.id))
+          .map(({ id }) => id)
       ),
-    [itemsWithIndex]
+    [itemsWithId]
   );
 
   const {
@@ -105,18 +124,12 @@ export default function PageBlocks ({
     onCommit: onLayoutChange,
   });
 
-  const sortedItems = useMemo(() => {
-    const clone = [...itemsWithIndex];
+  const sortedEntries = useMemo(() => {
+    const clone = [...itemsWithId];
     return clone
       .sort((a, b) => {
-        const aId = isPersistedBlock(a.item)
-          ? String(a.item.block.id ?? a.index)
-          : a.item.id;
-        const bId = isPersistedBlock(b.item)
-          ? String(b.item.block.id ?? b.index)
-          : b.item.id;
-        const aLayout = aId ? layoutLookup.get(aId) : undefined;
-        const bLayout = bId ? layoutLookup.get(bId) : undefined;
+        const aLayout = layoutLookup.get(a.id);
+        const bLayout = layoutLookup.get(b.id);
 
         if (aLayout && bLayout) {
           const rowDiff = aLayout.y - bLayout.y;
@@ -129,9 +142,8 @@ export default function PageBlocks ({
         if (aLayout) return -1;
         if (bLayout) return 1;
         return 0;
-      })
-      .map((entry) => entry.item);
-  }, [itemsWithIndex, layoutLookup]);
+      });
+  }, [itemsWithId, layoutLookup]);
 
   const handleSavePlaceholder = useCallback(
     (placeholderId: string, type: BlockKey, data: Record<string, unknown>) => {
@@ -193,15 +205,15 @@ export default function PageBlocks ({
           onDragStop={(layout) => handleLayoutCommit(layout, layouts)}
           onBreakpointChange={handleBreakpointChange}
         >
-          {sortedItems.map((item) => {
-            const key = isPersistedBlock(item) ? item.block.id : item.id;
-            const layout = layoutLookup.get(key);
-            const isDeleting = isPersistedBlock(item)
-              ? deletingBlockIds?.has(item.block.id)
+          {sortedEntries.map(({ item, id }) => {
+            const layout = layoutLookup.get(id);
+            const persistedId = isPersistedBlock(item) ? item.block.id : null;
+            const isDeleting = persistedId
+              ? deletingBlockIds?.has(persistedId) ?? false
               : false;
 
             return (
-              <div key={key} className="w-full h-full">
+              <div key={id} className="w-full h-full">
                 <PageBlockCard
                   item={item}
                   handle={handle}
@@ -211,7 +223,7 @@ export default function PageBlocks ({
                   dragGuardHandlers={dragGuardHandlers}
                   isDeleting={isDeleting}
                   onDeleteBlock={onDeleteBlock}
-                  onResize={(size) => handleResize(key, size)}
+                  onResize={(size) => handleResize(id, size)}
                   onSavePlaceholder={handleSavePlaceholder}
                   onCancelPlaceholder={handleCancelPlaceholder}
                 />
