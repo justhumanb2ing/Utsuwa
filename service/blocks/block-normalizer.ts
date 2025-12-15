@@ -234,7 +234,7 @@ export const applyContentPatch = (
   blocks: BlockWithDetails[],
   params:
     | { type: "text"; blockId: string; content: string }
-    | { type: "link"; blockId: string; url: string; title: string }
+    | { type: "link"; blockId: string; title: string }
     | { type: "section"; blockId: string; title: string }
 ): BlockWithDetails[] =>
   blocks.map((block) => {
@@ -245,7 +245,7 @@ export const applyContentPatch = (
     if (params.type === "section") {
       return { ...block, title: params.title };
     }
-    return { ...block, url: params.url, title: params.title };
+    return { ...block, title: params.title };
   });
 
 export type LayoutPatchPayload = BlockLayout[];

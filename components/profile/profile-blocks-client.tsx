@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useReducer, useState } from "react";
+import * as Sentry from "@sentry/nextjs";
 import {
   useMutation,
   useQueryClient,
@@ -39,6 +40,7 @@ import { useBlockEditorController } from "./block-editor-controller";
 import FixedToolbar from "./fixed-toolbar";
 import { uploadPageImage } from "@/service/uploads/upload-page-image";
 import { toastManager } from "@/components/ui/toast";
+import type { ResolvedLink } from "@/types/resolved-link";
 
 const readImageAspectRatio = async (
   file: File
@@ -69,6 +71,31 @@ const readImageAspectRatio = async (
   }
 };
 
+const mapResolvedLinkToBlockData = (
+  resolved: ResolvedLink
+): Record<string, unknown> => {
+  const normalizedUrl = resolved.url.trim();
+  const fallbackTitle =
+    resolved.title?.trim() ??
+    resolved.siteName?.trim() ??
+    normalizedUrl;
+
+  return {
+    url: normalizedUrl,
+    title: fallbackTitle,
+    description: resolved.description ?? null,
+    imageUrl: resolved.imageUrl ?? null,
+    siteName: resolved.siteName ?? null,
+    faviconUrl: resolved.faviconUrl ?? null,
+    kind: resolved.kind,
+    source: resolved.source,
+    platform: resolved.platform ?? null,
+    tier: resolved.tier ?? null,
+    resource: resolved.resource ?? null,
+    data: resolved.data ?? null,
+  };
+};
+
 type ProfileBlocksClientProps = ProfileOwnership & {
   initialLayoutItems: LayoutBlock[];
   handle: PageHandle;
@@ -91,6 +118,7 @@ export const ProfileBlocksClient = ({
     initialBlockEditorState
   );
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isCreatingLink, setIsCreatingLink] = useState(false);
   const queryClient = useQueryClient();
   const { setStatus } = useSaveStatus();
   const { data: profile } = useSuspenseQuery(
@@ -211,6 +239,100 @@ export const ProfileBlocksClient = ({
       handle,
       isOwner,
       isUploadingImage,
+      pageId,
+      setStatus,
+      userId,
+    ]
+  );
+
+  const handleCreateLinkBlock = useCallback(
+    async (url: string) => {
+      if (!isOwner) return;
+      if (!userId) {
+        toastManager.add({
+          title: "로그인이 필요합니다.",
+          description: "링크를 추가하려면 로그인 후 다시 시도하세요.",
+          type: "error",
+        });
+        return;
+      }
+
+      const trimmedUrl = url.trim();
+      if (!trimmedUrl) {
+        toastManager.add({
+          title: "URL을 입력해 주세요.",
+          description: "링크를 추가하려면 주소가 필요합니다.",
+          type: "error",
+        });
+        return;
+      }
+      if (isCreatingLink || createBlockMutation.isPending) return;
+
+      setIsCreatingLink(true);
+      setStatus("saving");
+
+      try {
+        await Sentry.startSpan(
+          { op: "block.create", name: "Create link block" },
+          async (span) => {
+            span.setAttribute("link.url", trimmedUrl);
+
+            const response = await fetch("/api/link/resolve", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url: trimmedUrl }),
+            });
+
+            if (!response.ok) {
+              const errorBody = (await response.json().catch(() => null)) as
+                | { error?: string }
+                | null;
+              const message =
+                typeof errorBody?.error === "string"
+                  ? errorBody.error
+                  : "링크 정보를 불러오지 못했습니다.";
+              throw new Error(message);
+            }
+
+            const data = (await response.json()) as ResolvedLink;
+
+            span.setAttribute("link.kind", data.kind);
+            span.setAttribute("link.source", data.source);
+            span.setAttribute("link.hasImage", Boolean(data.imageUrl));
+
+            await createBlockMutation.mutateAsync({
+              pageId,
+              handle,
+              type: "link",
+              data: mapResolvedLinkToBlockData(data),
+              itemId: crypto.randomUUID(),
+            });
+          }
+        );
+
+        setStatus("saved");
+      } catch (error) {
+        Sentry.captureException(error);
+        setStatus("error");
+        const message =
+          error instanceof Error
+            ? error.message
+            : "링크 블록을 추가하지 못했습니다.";
+        toastManager.add({
+          title: "링크 블록 추가 실패",
+          description: message,
+          type: "error",
+        });
+        throw error;
+      } finally {
+        setIsCreatingLink(false);
+      }
+    },
+    [
+      createBlockMutation,
+      handle,
+      isCreatingLink,
+      isOwner,
       pageId,
       setStatus,
       userId,
@@ -366,6 +488,7 @@ export const ProfileBlocksClient = ({
             isVisible={isOwner}
             addPlaceholder={handleAddPlaceholder}
             onUploadImage={handleUploadImageBlock}
+            onCreateLinkBlock={handleCreateLinkBlock}
           />
           <PageBlocks
             items={items}

@@ -78,6 +78,10 @@ export const PageBlockCard = ({
   );
   const width = layout?.w ?? defaultWidth;
   const height = layout?.h ?? defaultHeight;
+  const storedWidth = width * LAYOUT_SIZE_SCALE;
+  const storedHeight = height * LAYOUT_SIZE_SCALE;
+  const linkBlockVariant =
+    storedWidth === 2 && storedHeight === 2 ? "compact" : "expanded";
   const isDeletingPersistedBlock = Boolean(blockId && isDeleting);
   const isDeletable = isPlaceholder || Boolean(blockId);
   const isImageBlock = blockType === "image";
@@ -174,6 +178,8 @@ export const PageBlockCard = ({
                   handle={handle}
                   isOwner={isOwner}
                   data={extractLinkData(block)}
+                  sizeVariant={linkBlockVariant}
+                  layoutSize={{ width: storedWidth, height: storedHeight }}
                   onSavePlaceholder={
                     isPlaceholder
                       ? (data) => onSavePlaceholder(item.id, "link", data)

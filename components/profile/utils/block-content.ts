@@ -1,13 +1,43 @@
+import type { LinkBlockData } from "@/types/block-editor";
 import type { LayoutBlock } from "@/types/layout";
 
 export const extractLinkData = (
   block?: LayoutBlock
-): { url?: string | null; title?: string | null } => {
+): LinkBlockData => {
   const data = block?.data as Record<string, unknown> | null | undefined;
   if (!data) return {};
+  const toStringOrNull = (value: unknown): string | null =>
+    typeof value === "string" ? value : null;
+  const toRecordOrNull = (
+    value: unknown
+  ): Record<string, unknown> | null =>
+    value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+  const kind = toStringOrNull(data.kind);
+  const source = toStringOrNull(data.source);
+
   return {
-    url: typeof data.url === "string" ? data.url : null,
-    title: typeof data.title === "string" ? data.title : null,
+    url: toStringOrNull(data.url) ?? toStringOrNull((data as { href?: unknown }).href),
+    title: toStringOrNull(data.title),
+    description: toStringOrNull(data.description),
+    imageUrl:
+      toStringOrNull(data.imageUrl) ??
+      toStringOrNull((data as { image_url?: unknown }).image_url),
+    siteName:
+      toStringOrNull(data.siteName) ??
+      toStringOrNull((data as { site_name?: unknown }).site_name),
+    faviconUrl:
+      toStringOrNull(data.faviconUrl) ??
+      toStringOrNull((data as { favicon_url?: unknown }).favicon_url) ??
+      toStringOrNull((data as { icon_url?: unknown }).icon_url),
+    kind: kind === "rich" || kind === "metadata" ? kind : null,
+    source:
+      source === "provider" || source === "platform-only" || source === "og"
+        ? source
+        : null,
+    platform: toStringOrNull(data.platform),
+    tier: toStringOrNull(data.tier),
+    resource: toStringOrNull(data.resource),
+    data: toRecordOrNull(data.data),
   };
 };
 

@@ -242,7 +242,6 @@ type UpdateLayoutContentVariables =
   | {
       type: "link";
       blockId: string;
-      url: string;
       title: string;
       handle?: PageHandle;
     }
@@ -569,7 +568,6 @@ export const layoutMutationOptions = {
             : variables.type === "section"
               ? { title: variables.title }
               : {
-                  url: variables.url,
                   title: variables.title,
                 };
 
@@ -609,7 +607,6 @@ export const layoutMutationOptions = {
               : variables.type === "section"
                 ? { title: variables.title }
                 : {
-                    url: variables.url,
                     title: variables.title,
                   };
           const nextLayout = patchLayoutItemData(

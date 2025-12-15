@@ -3,33 +3,35 @@ import { layoutMutationOptions } from "@/service/layouts/layout-mutation-options
 import { useMutation } from "@tanstack/react-query";
 import { useDebouncedMutation } from "./use-debounced-mutation";
 import { useBlockEnv } from "./use-block-env";
-import type {
-  
-  LinkBlockParams,
-  LinkBlockState,
-} from "@/types/block-editor";
+import type { LinkBlockParams, LinkBlockState } from "@/types/block-editor";
 
 export const useLinkBlockEditor = (params: LinkBlockParams) => {
   const { supabase, userId } = useBlockEnv();
+  const initialTitle =
+    (params.data.title ??
+      params.data.siteName ??
+      params.data.url ??
+      "")?.trim() ?? "";
   const [values, setValues] = useState<LinkBlockState>({
-    url: params.data.url ?? "",
-    title: params.data.title ?? "",
+    title: initialTitle,
   });
+  const fallbackTitle = initialTitle;
   const updateBlockMutation = useMutation(
     layoutMutationOptions.updateContent({ supabase, userId })
   );
 
   const getValues = useMemo(
     () => () => ({
-      url: values.url.trim(),
-      title: values.title.trim(),
+      title: values.title.trim() || fallbackTitle,
     }),
-    [values.url, values.title]
+    [fallbackTitle, values.title]
   );
 
   const save = (v: LinkBlockState) => {
+    const nextTitle = v.title.trim() || fallbackTitle;
+
     if (params.mode === "placeholder" && params.onSavePlaceholder) {
-      params.onSavePlaceholder(v);
+      params.onSavePlaceholder({ title: nextTitle });
       return Promise.resolve();
     }
 
@@ -41,8 +43,7 @@ export const useLinkBlockEditor = (params: LinkBlockParams) => {
             type: "link",
             blockId,
             handle: params.handle,
-            url: v.url,
-            title: v.title,
+            title: nextTitle,
           },
           {
             onSuccess: () => resolve(),
@@ -59,15 +60,11 @@ export const useLinkBlockEditor = (params: LinkBlockParams) => {
     initial: getValues(),
     getValues,
     save,
-    enabled: params.isOwner,
-    mode: params.mode,
+    enabled: params.isOwner && params.mode === "persisted",
   });
 
   return {
     values,
-    setUrl: (value: string) =>
-      setValues((prev) => ({ ...prev, url: value })),
-    setTitle: (value: string) =>
-      setValues((prev) => ({ ...prev, title: value })),
+    setTitle: (value: string) => setValues({ title: value }),
   };
 };
