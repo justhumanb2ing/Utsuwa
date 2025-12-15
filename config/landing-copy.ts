@@ -40,7 +40,7 @@ export type LandingCopy = {
 export const landingCopy: LandingCopy = {
   hero: {
     eyebrow: "Link everything that defines you.",
-    title: "DAYDREAM",
+    title: "UTSUWA",
     description: "Gather all your links in one clean handle.",
     cta: "Create your handle",
   },

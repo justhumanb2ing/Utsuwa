@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { LoaderIcon } from "lucide-react";
 import Link from "next/link";
 import Logo from "../layout/logo";
+import LogoTitle from "../layout/logo-title";
 
 export default function SignUpSection() {
   return (
@@ -21,6 +22,7 @@ export default function SignUpSection() {
               {/* Logo */}
               <header className="text-left flex justify-center">
                 <Logo />
+                <LogoTitle />
               </header>
 
               <Clerk.GlobalError className="block text-sm text-red-600" />

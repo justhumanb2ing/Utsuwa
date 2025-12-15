@@ -5,7 +5,7 @@ import SignUpSection from "@/components/auth/sign-up-section";
 
 const SIGN_UP_TITLE = "Sign up";
 const SIGN_UP_DESCRIPTION =
-  "Create your Daydream account and publish your profile in minutes.";
+  "Create your Utsuwa account and publish your profile in minutes.";
 const SIGN_UP_URL = `${siteConfig.url}/sign-up`;
 
 export const metadata: Metadata = {

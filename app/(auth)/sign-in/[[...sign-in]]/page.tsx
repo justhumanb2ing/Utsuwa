@@ -5,7 +5,7 @@ import SignInSection from "@/components/auth/sign-in-section";
 
 const SIGN_IN_TITLE = "Sign in";
 const SIGN_IN_DESCRIPTION =
-  "Sign in to Daydream to manage your profile and links.";
+  "Sign in to Utsuwa to manage your profile and links.";
 const SIGN_IN_URL = `${siteConfig.url}/sign-in`;
 
 export const metadata: Metadata = {

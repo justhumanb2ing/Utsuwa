@@ -6,6 +6,7 @@ import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 import { LoaderIcon } from "lucide-react";
 import Logo from "../layout/logo";
+import LogoTitle from "../layout/logo-title";
 
 export default function SignInSection() {
   return (
@@ -18,8 +19,9 @@ export default function SignInSection() {
                 name="start"
                 className="w-full space-y-4 rounded-2xl px-4 py-10 sm:w-96 sm:px-8"
               >
-                <header className="text-center mb-6 flex justify-center">
+                <header className="text-center mb-6 flex justify-center items-center">
                   <Logo />
+                  <LogoTitle />
                 </header>
                 <Clerk.GlobalError className="block text-sm text-red-600" />
                 <Clerk.Field name="identifier">

@@ -79,7 +79,7 @@ export default function AuthVisualPanel() {
             className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] backdrop-blur"
           >
             <Sparkles className="h-4 w-4" />
-            Daydream in motion
+            Utsuwa in motion
           </motion.p>
 
           <motion.h2
