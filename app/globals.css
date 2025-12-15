@@ -63,14 +63,14 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --brand-ink: #000000;
-  --brand-indigo: #758bfd;
-  --brand-poppy: #ff4242;
-  --brand-cloud: #e5e5e5;
-  --brand-ink-hover: #333333;
-  --brand-indigo-hover: #6178e6;
-  --brand-poppy-hover: #e63a3a;
-  --brand-cloud-hover: #d6d6d6;
+  --brand-ink: oklch(0 0 0);
+  --brand-indigo: oklch(0.6733 0.1693 272.84);
+  --brand-poppy: oklch(0.6616 0.2249 25.88);
+  --brand-cloud: oklch(0.9219 0 0);
+  --brand-ink-hover: oklch(0.3211 0 0);
+  --brand-indigo-hover: oklch(0.6097 0.1673 271.72);
+  --brand-poppy-hover: oklch(0.6114 0.2086 25.93);
+  --brand-cloud-hover: oklch(0.8761 0 0);
 }
 
 .dark {
@@ -105,14 +105,14 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
-  --brand-ink: #000000;
-  --brand-indigo: #758bfd;
-  --brand-poppy: #ff4242;
-  --brand-cloud: #e5e5e5;
-  --brand-ink-hover: #333333;
-  --brand-indigo-hover: #6178e6;
-  --brand-poppy-hover: #e63a3a;
-  --brand-cloud-hover: #d6d6d6;
+  --brand-ink: oklch(0 0 0);
+  --brand-indigo: oklch(0.6733 0.1693 272.84);
+  --brand-poppy: oklch(0.6616 0.2249 25.88);
+  --brand-cloud: oklch(0.9219 0 0);
+  --brand-ink-hover: oklch(0.3211 0 0);
+  --brand-indigo-hover: oklch(0.6097 0.1673 271.72);
+  --brand-poppy-hover: oklch(0.6114 0.2086 25.93);
+  --brand-cloud-hover: oklch(0.8761 0 0);
 }
 
 @theme inline {
