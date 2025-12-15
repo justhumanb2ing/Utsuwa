@@ -127,7 +127,7 @@ export default function SignUpSection() {
                     type="button"
                     variant={"outline"}
                     size={"icon-lg"}
-                    className="w-full shadow-none rounded-xl h-12"
+                    className="w-full rounded-xl h-12 bg-background shadow hover:bg-accent/50"
                     disabled={isGlobalLoading}
                   >
                     <Clerk.Loading scope="provider:google">
