@@ -162,7 +162,6 @@ export default function PageBlocks ({
   if (!items.length) {
     return (
       <Item
-        asChild
         className="flex flex-col items-center space-y-3 max-w-sm text-center font-medium p-0 border-none bg-transparent shadow-none"
       >
         <Empty>
@@ -186,7 +185,7 @@ export default function PageBlocks ({
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button asChild size={"sm"}>
+            <Button size={"sm"}>
               <Link href={"/"}>돌아가기</Link>
             </Button>
           </EmptyContent>

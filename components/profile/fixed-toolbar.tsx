@@ -138,7 +138,6 @@ export default function FixedToolbar({
                   side="top"
                   align="center"
                   sideOffset={12}
-                  viewPortExpanded
                 >
                   <form className="space-y-2" onSubmit={handleLinkSubmit}>
                     <div className="relative">

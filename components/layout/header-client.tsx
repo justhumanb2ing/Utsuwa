@@ -51,7 +51,6 @@ export default function HeaderClient({ userId }: HeaderClientProps) {
 
   return (
     <Item
-      asChild
       className="w-full flex items-center p-2 lg:p-0 gap-2 h-fit border-none shadow-none bg-background"
     >
       <header className="flex justify-between items-center">

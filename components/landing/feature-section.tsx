@@ -152,7 +152,6 @@ export default function FeatureSection() {
               {secondary.description}
             </p>
             <Button
-              asChild
               size={"icon-lg"}
               className={cn(
                 "w-3xs h-12 text-base bg-brand-poppy text-white rounded-xl font-bold transition-colors flex items-center gap-2",

@@ -106,7 +106,6 @@ export default function HeroSection() {
           className="flex flex-col sm:flex-row gap-4"
         >
           <Button
-            asChild
             size={"icon-lg"}
             className={cn(
               "w-3xs h-12 text-sm bg-brand-ink text-white rounded-xl font-bold transition-colors flex items-center gap-2",

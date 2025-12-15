@@ -29,18 +29,12 @@ export default function Home() {
       <JsonLd data={jsonLd} />
       <nav className="sticky top-0 z-20 bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl justify-end">
-          <Item
-            asChild
-            className="w-full flex justify-end items-center p-4 lg:p-0 gap-2 border-none shadow-none bg-transparent"
-          >
+          <Item className="w-full flex justify-end items-center p-4 lg:p-0 gap-2 border-none shadow-none bg-transparent">
             <aside className="px-4">
-              <Button asChild variant={"ghost"} className="font-medium">
+              <Button variant={"ghost"} className="font-medium">
                 <Link href={"/go/profile"}>Sign in</Link>
               </Button>
-              <Button
-                asChild
-                className="font-medium bg-brand-poppy hover:bg-brand-poppy-hover"
-              >
+              <Button className="font-medium bg-brand-poppy hover:bg-brand-poppy-hover">
                 <Link href={"/go/profile"}>Start for free</Link>
               </Button>
             </aside>

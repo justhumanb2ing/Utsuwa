@@ -21,10 +21,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "../ui/dialog";
 import { useClerk } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 interface SettingDropdownMenuProps {
   profile: Pick<ProfileBffPayload, "isOwner" | "page">;
@@ -40,37 +40,40 @@ export function SettingDropdownMenu({
   const { isOwner, page } = profile;
   const { signOut } = useClerk();
   const pathname = usePathname();
+  const [showDialog, setShowDialog] = useState(false);
 
   if (!isOwner) return null;
 
   return (
-    <Dialog>
-      <DropdownMenu dir="ltr">
-        <DropdownMenuTrigger asChild>
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            className="rounded-full text-muted-foreground"
-          >
-            <Settings2Icon />
-          </Button>
-        </DropdownMenuTrigger>
+    <>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              className="rounded-full text-muted-foreground"
+            >
+              <Settings2Icon />
+            </Button>
+          }
+        />
         <DropdownMenuContent
           className="w-64 rounded-xl p-2 space-y-1"
           align="start"
           sideOffset={8}
           side="top"
         >
-          <DialogTrigger asChild>
-            <DropdownMenuItem className="text-xs flex-row justify-between items-center gap-1">
-              <div className="space-y-1">
-                <p className="font-medium">Change Handle</p>
-                <p className="text-muted-foreground">{page.handle}</p>
-              </div>
-              <ArrowUpRightIcon />
-            </DropdownMenuItem>
-          </DialogTrigger>
-
+          <DropdownMenuItem
+            className="text-xs flex-row justify-between items-center gap-1"
+            onSelect={() => setShowDialog(true)}
+          >
+            <div className="space-y-1">
+              <p className="font-medium">Change Handle</p>
+              <p className="text-muted-foreground">{page.handle}</p>
+            </div>
+            <ArrowUpRightIcon />
+          </DropdownMenuItem>
           <DropdownMenuItem
             className={cn(
               "flex-col items-start gap-3 p-2",
@@ -96,20 +99,22 @@ export function SettingDropdownMenu({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <DialogContent
-        className="sm:max-w-[425px] border-none rounded-xl"
-        showCloseButton={false}
-      >
-        <DialogHeader className="hidden">
-          <DialogTitle></DialogTitle>
-          <DialogDescription></DialogDescription>
-        </DialogHeader>
-        <HandleChangeForm
-          profile={profile}
-          supabase={supabase}
-          userId={userId}
-        />
-      </DialogContent>
-    </Dialog>
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent
+          className="sm:max-w-[425px] border-none rounded-xl"
+          showCloseButton={false}
+        >
+          <DialogHeader className="hidden">
+            <DialogTitle></DialogTitle>
+            <DialogDescription></DialogDescription>
+          </DialogHeader>
+          <HandleChangeForm
+            profile={profile}
+            supabase={supabase}
+            userId={userId}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

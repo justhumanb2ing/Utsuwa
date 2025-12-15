@@ -147,7 +147,6 @@ export default function SignUpSection() {
               <Button
                 variant="link"
                 size="sm"
-                asChild
                 className="w-full text-neutral-700"
               >
                 <Clerk.Link navigate="sign-in">

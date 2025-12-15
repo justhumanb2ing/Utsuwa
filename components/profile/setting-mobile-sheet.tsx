@@ -144,38 +144,5 @@ export default function SettingMobileSheet({
         </div>
       </DrawerContent>
     </Drawer>
-
-    // <Sheet>
-    //   <SheetTrigger render={<Button variant="outline" />}>
-    //     Open Sheet
-    //   </SheetTrigger>
-    //   <SheetPopup inset showCloseButton={false} side="bottom" className={""}>
-    //     <SheetHeader>
-    //       <SheetTitle className={"font-black"}>Setting</SheetTitle>
-    //     </SheetHeader>
-    //     <SheetPanel>
-    //   <Button
-    //     variant={"ghost"}
-    //     size={"lg"}
-    //     className="w-full flex justify-between items-center h-16 py-10 rounded-xl"
-    //   >
-    //     <div className="space-y-1 text-left text-base">
-    //       <p>Change Handle</p>
-    //       <p className="text-muted-foreground">{page.handle}</p>
-    //     </div>
-    //     <ArrowUpRightIcon />
-    //   </Button>
-    //       <p>
-    //         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-    //         eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-    //         ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-    //         aliquip ex ea commodo consequat. Duis aute irure dolor in
-    //         reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-    //         pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-    //         culpa qui officia deserunt mollit anim id est laborum.
-    //       </p>
-    //     </SheetPanel>
-    //   </SheetPopup>
-    // </Sheet>
   );
 }
