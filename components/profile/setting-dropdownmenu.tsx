@@ -66,7 +66,7 @@ export function SettingDropdownMenu({
         >
           <DropdownMenuItem
             className="text-xs flex-row justify-between items-center gap-1"
-            onSelect={() => setShowDialog(true)}
+            onClick={() => setShowDialog(true)}
           >
             <div className="space-y-1">
               <p className="font-medium">Change Handle</p>
